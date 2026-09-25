@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useApi } from "@/lib/use-api";
-import { PK_REGIONS, humanize, toDateInput } from "@/lib/format";
+import { PK_REGIONS, humanize, todayInput, toDateInput } from "@/lib/format";
 import type { Branch, Department, Employee, EmploymentType, Paginated, Shift } from "@/lib/types";
 import { Alert, Button, Field, Input, Select } from "./ui";
 
@@ -20,6 +20,7 @@ function initialValues(e?: Employee): EmployeeFormValues {
     designation: e?.designation ?? "",
     employmentType: e?.employmentType ?? "FULL_TIME",
     dateOfJoining: toDateInput(e?.dateOfJoining),
+    dateOfBirth: toDateInput(e?.dateOfBirth),
     probationEndDate: toDateInput(e?.probationEndDate),
     contractEndDate: toDateInput(e?.contractEndDate),
     branchId: e?.branchId ?? "",
@@ -65,7 +66,8 @@ export function EmployeeForm({
       if (key === "status" && !employee) continue; // new employees start ACTIVE
       if (value === "") {
         // On edit, clearing an optional date or the shift removes it; other blanks are left alone.
-        if (employee && (key === "probationEndDate" || key === "contractEndDate" || key === "shiftId")) payload[key] = null;
+        if (employee && (key === "probationEndDate" || key === "contractEndDate" || key === "dateOfBirth" || key === "shiftId"))
+          payload[key] = null;
         continue;
       }
       payload[key] = value;
@@ -116,6 +118,9 @@ export function EmployeeForm({
         </Field>
         <Field label="Joining date">
           <Input type="date" required value={values.dateOfJoining} onChange={set("dateOfJoining")} />
+        </Field>
+        <Field label="Date of birth" hint="Optional — for birthday wishes on the feed">
+          <Input type="date" max={todayInput()} value={values.dateOfBirth} onChange={set("dateOfBirth")} />
         </Field>
         <Field label="Probation ends">
           <Input type="date" value={values.probationEndDate} onChange={set("probationEndDate")} />

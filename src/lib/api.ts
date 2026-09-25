@@ -97,3 +97,10 @@ export async function downloadFile(path: string, filename: string): Promise<Head
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   return res.headers;
 }
+
+// Pictures behind the login (feed photos): fetch with the auth header and
+// return a temporary object URL for <img src>. Callers revoke it when done.
+export async function fetchObjectUrl(path: string): Promise<string> {
+  const res = await request("GET", path);
+  return URL.createObjectURL(await res.blob());
+}

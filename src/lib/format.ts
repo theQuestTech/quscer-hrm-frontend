@@ -27,6 +27,18 @@ export function formatMinutes(value: number | null | undefined): string {
   return h ? `${h}h${m ? ` ${m}m` : ""}` : `${m}m`;
 }
 
+// "just now", "5 min ago", "3 h ago", "yesterday", then a date.
+export function formatRelative(value: string, now = Date.now()): string {
+  const seconds = Math.round((now - new Date(value).getTime()) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} h ago`;
+  if (hours < 48) return "yesterday";
+  return new Date(value).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export function formatMonth(value: string): string {
   return new Date(value).toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
 }
