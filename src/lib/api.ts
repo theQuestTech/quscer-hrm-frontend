@@ -79,8 +79,9 @@ export async function api<T = unknown>(method: string, path: string, body?: unkn
   return (text ? JSON.parse(text) : null) as T;
 }
 
-// For PDF payslips: fetch with the auth header, then hand the browser a file.
-export async function downloadFile(path: string, filename: string) {
+// For PDF payslips and the bank file: fetch with the auth header, then hand
+// the browser a file. Returns the response headers for callers that need them.
+export async function downloadFile(path: string, filename: string): Promise<Headers> {
   const res = await request("GET", path);
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
@@ -91,4 +92,5 @@ export async function downloadFile(path: string, filename: string) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return res.headers;
 }

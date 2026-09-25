@@ -297,6 +297,9 @@ function Users() {
   const users = useApi<AppUser[]>("/users");
   const roles = useApi<Role[]>("/roles");
   const [editing, setEditing] = useState<AppUser | null>(null);
+  const [resetting, setResetting] = useState<AppUser | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [resetDone, setResetDone] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
@@ -323,6 +326,23 @@ function Users() {
     }
   }
 
+  async function resetPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!resetting) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await api("POST", `/users/${resetting.id}/reset-password`, { newPassword });
+      setResetDone(`${resetting.firstName}'s password was reset. Share the new password with them.`);
+      setResetting(null);
+      setNewPassword("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not reset password");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function toggleActive(user: AppUser) {
     if (user.isActive && !window.confirm(`Turn off ${user.firstName}'s access? They won't be able to sign in.`)) return;
     setListError(null);
@@ -340,6 +360,11 @@ function Users() {
         <p className="border-b border-slate-100 px-5 py-2 text-xs text-slate-500">
           To give an employee a login, open their profile → Login access.
         </p>
+        {resetDone && (
+          <div className="p-4">
+            <Alert tone="success">{resetDone}</Alert>
+          </div>
+        )}
         {(listError || users.error) && (
           <div className="p-4">
             <Alert>{listError ?? users.error}</Alert>
@@ -380,6 +405,18 @@ function Users() {
                           <Button size="sm" variant="secondary" onClick={() => open(u)}>
                             Roles
                           </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              setError(null);
+                              setResetDone(null);
+                              setNewPassword("");
+                              setResetting(u);
+                            }}
+                          >
+                            Reset password
+                          </Button>
                           <Button size="sm" variant="ghost" onClick={() => toggleActive(u)}>
                             {u.isActive ? "Turn off" : "Turn on"}
                           </Button>
@@ -408,6 +445,24 @@ function Users() {
           ))}
         </div>
       </Card>
+
+      <Modal open={resetting !== null} onClose={() => setResetting(null)} title={`Reset password for ${resetting?.firstName ?? ""}`}>
+        <form onSubmit={resetPassword} className="space-y-4">
+          {error && <Alert>{error}</Alert>}
+          <p className="text-sm text-slate-600">
+            Set a temporary password and share it with {resetting?.firstName}. They can change it afterwards from &ldquo;Change
+            password&rdquo; in the menu.
+          </p>
+          <Field label="New password" hint="At least 8 characters">
+            <Input type="text" autoComplete="off" required minLength={8} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+          </Field>
+          <div className="flex justify-end">
+            <Button type="submit" loading={saving}>
+              Reset password
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       <Modal open={editing !== null} onClose={() => setEditing(null)} title={`Roles for ${editing?.firstName ?? ""}`}>
         <div className="space-y-4">
