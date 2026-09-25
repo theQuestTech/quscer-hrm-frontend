@@ -104,6 +104,7 @@ function MyLeave() {
                     <p className="mt-1 text-2xl font-semibold">{b.remainingDays}</p>
                     <p className="text-xs text-slate-500">
                       of {b.allocatedDays} days left · {b.usedDays} used
+                      {b.pendingDays > 0 && ` · ${b.pendingDays} waiting`}
                     </p>
                   </>
                 ) : (
@@ -129,7 +130,7 @@ function MyLeave() {
           loading={requests.loading}
           showEmployee={false}
           actions={(r) =>
-            r.status === "PENDING" && (
+            (r.status === "PENDING" || r.status === "FIRST_APPROVED") && (
               <Button size="sm" variant="ghost" onClick={() => cancel(r.id)}>
                 Cancel
               </Button>
@@ -258,8 +259,14 @@ function RequestsTable({
 
 function Approvals() {
   const { me } = useAuth();
-  const [status, setStatus] = useState("PENDING");
-  const requests = useApi<LeaveRequest[]>(`/leave-requests${status ? `?status=${status}` : ""}`);
+  // "OPEN" = still waiting on someone: new requests and ones with only the
+  // first of two approvals.
+  const [status, setStatus] = useState("OPEN");
+  const all = useApi<LeaveRequest[]>(`/leave-requests${status && status !== "OPEN" ? `?status=${status}` : ""}`);
+  const requests = {
+    ...all,
+    data: status === "OPEN" ? all.data?.filter((r) => r.status === "PENDING" || r.status === "FIRST_APPROVED") ?? null : all.data,
+  };
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -282,7 +289,7 @@ function Approvals() {
       padded={false}
       actions={
         <Select value={status} onChange={(e) => setStatus(e.target.value)} className="w-40" aria-label="Status">
-          <option value="PENDING">Waiting</option>
+          <option value="OPEN">Waiting</option>
           <option value="APPROVED">Approved</option>
           <option value="REJECTED">Rejected</option>
           <option value="CANCELLED">Cancelled</option>
@@ -301,14 +308,14 @@ function Approvals() {
         showEmployee
         actions={(r) => {
           if (r.employeeId === me?.employee?.id) return <span className="text-xs text-slate-400">Your own</span>;
-          if (r.status === "PENDING")
+          if (r.status === "PENDING" || r.status === "FIRST_APPROVED")
             return (
               <div className="flex justify-end gap-2">
                 <Button size="sm" variant="secondary" loading={busyId === r.id} onClick={() => act(r.id, "reject")}>
                   Reject
                 </Button>
                 <Button size="sm" loading={busyId === r.id} onClick={() => act(r.id, "approve")}>
-                  Approve
+                  {r.status === "FIRST_APPROVED" ? "Final approve" : "Approve"}
                 </Button>
               </div>
             );
@@ -334,16 +341,23 @@ function Balances() {
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
 
-  async function save(leaveTypeId: string) {
+  // A number sets the allocation by hand; null goes back to the leave
+  // type's rules (accrual, proration, carry-forward).
+  async function save(leaveTypeId: string, reset = false) {
     setMessage(null);
     try {
-      await api("PUT", "/leave-balances", { employeeId: selected, leaveTypeId, year, allocatedDays: Number(edits[leaveTypeId]) });
+      await api("PUT", "/leave-balances", {
+        employeeId: selected,
+        leaveTypeId,
+        year,
+        allocatedDays: reset ? null : Number(edits[leaveTypeId]),
+      });
       setEdits((e) => {
         const next = { ...e };
         delete next[leaveTypeId];
         return next;
       });
-      setMessage({ tone: "success", text: "Allocation saved" });
+      setMessage({ tone: "success", text: reset ? "Back to the automatic amount" : "Allocation saved" });
       balances.reload();
     } catch (e) {
       setMessage({ tone: "error", text: e instanceof Error ? e.message : "Could not save" });
@@ -365,7 +379,9 @@ function Balances() {
       }
     >
       <p className="border-b border-slate-100 px-5 py-2 text-xs text-slate-500">
-        Every employee starts with each leave type&apos;s default days. Change them here for anyone who gets more or less (e.g. joined mid-year).
+        Days are worked out from each leave type&apos;s rules (set in Settings → Leave types): cut down for people who joined this
+        year, earned month by month if set that way, plus days carried over from last year. Type a number to override it for
+        one person.
       </p>
       {message && (
         <div className="p-4">
@@ -383,6 +399,7 @@ function Balances() {
               <Th>Leave type</Th>
               <Th>Allocated</Th>
               <Th>Used</Th>
+              <Th>Waiting</Th>
               <Th>Remaining</Th>
               <Th />
             </tr>
@@ -403,13 +420,24 @@ function Balances() {
                   />
                 </Td>
                 <Td>{b.usedDays}</Td>
+                <Td>{b.pendingDays || "—"}</Td>
                 <Td>{b.remainingDays}</Td>
                 <Td className="text-right">
-                  {edits[b.leaveType.id] !== undefined && (
-                    <Button size="sm" onClick={() => save(b.leaveType.id)}>
-                      Save
-                    </Button>
-                  )}
+                  <div className="flex items-center justify-end gap-2">
+                    {b.isManualAllocation && edits[b.leaveType.id] === undefined && (
+                      <>
+                        <span className="text-xs text-slate-500">Set by hand</span>
+                        <Button size="sm" variant="ghost" onClick={() => save(b.leaveType.id, true)}>
+                          Use automatic
+                        </Button>
+                      </>
+                    )}
+                    {edits[b.leaveType.id] !== undefined && (
+                      <Button size="sm" onClick={() => save(b.leaveType.id)}>
+                        Save
+                      </Button>
+                    )}
+                  </div>
                 </Td>
               </tr>
             ))}

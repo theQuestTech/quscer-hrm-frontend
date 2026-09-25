@@ -14,8 +14,9 @@ import { EmployeeStatusBadge } from "@/components/status-badges";
 import { EmployeeForm } from "@/components/employee-form";
 import { RequirePermission } from "@/components/app-shell";
 import { AccessSection, BankSection, ContactsSection, DocumentsSection, PaySection } from "./sections";
+import { SettlementSection } from "./settlement-section";
 
-type Tab = "overview" | "contacts" | "documents" | "bank" | "pay" | "access";
+type Tab = "overview" | "contacts" | "documents" | "bank" | "pay" | "settlement" | "access";
 
 export default function EmployeeProfilePage() {
   return (
@@ -42,6 +43,7 @@ function Profile() {
     { id: "documents", label: "Documents" },
     { id: "bank", label: "Bank" },
     ...(can("hrm.payroll.read") ? [{ id: "pay" as Tab, label: "Salary & loans" }] : []),
+    ...(can("hrm.payroll.read") ? [{ id: "settlement" as Tab, label: "Final settlement" }] : []),
     ...(can("hrm.settings.write") ? [{ id: "access" as Tab, label: "Login access" }] : []),
   ];
 
@@ -94,6 +96,11 @@ function Profile() {
                 {employee.contractEndDate && <Detail label="Contract ends" value={formatDate(employee.contractEndDate)} />}
                 <Detail label="Branch" value={employee.branch?.name} />
                 <Detail label="Department" value={employee.department?.name} />
+                <Detail
+                  label="Shift"
+                  value={employee.shift ? `${employee.shift.name} (${employee.shift.startTime}–${employee.shift.endTime})` : "None — no late or overtime tracking"}
+                />
+                {employee.exitDate && <Detail label="Left on" value={formatDate(employee.exitDate)} />}
                 <Detail label="Tax jurisdiction" value={[employee.countryCode, employee.regionCode].filter(Boolean).join(" / ") || "Not set — payroll will skip this employee"} />
               </dl>
             </Card>
@@ -134,6 +141,7 @@ function Profile() {
       {tab === "documents" && <DocumentsSection employee={employee} onChange={reload} />}
       {tab === "bank" && <BankSection employee={employee} onChange={reload} />}
       {tab === "pay" && <PaySection employee={employee} />}
+      {tab === "settlement" && <SettlementSection employee={employee} onChange={reload} />}
       {tab === "access" && <AccessSection employee={employee} onChange={reload} />}
     </>
   );

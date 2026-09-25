@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
-import { api } from "@/lib/api";
+import { Download, ExternalLink, Plus, Trash2 } from "lucide-react";
+import { api, downloadFile } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/use-api";
 import { formatDate, formatMoney, humanize, todayInput, toDateInput } from "@/lib/format";
@@ -118,25 +118,52 @@ export function ContactsSection({ employee, onChange }: { employee: EmployeeProf
 
 // --- Documents -------------------------------------------------------------
 
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+
+function formatSize(bytes: number | null) {
+  if (!bytes) return "";
+  return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
 export function DocumentsSection({ employee, onChange }: { employee: EmployeeProfile; onChange: () => void }) {
   const { can } = useAuth();
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<"upload" | "link">("upload");
   const [form, setForm] = useState({ category: "", fileUrl: "", expiryDate: "" });
+  const [file, setFile] = useState<File | null>(null);
   const action = useAction();
   const today = todayInput();
 
+  function close() {
+    setOpen(false);
+    setForm({ category: "", fileUrl: "", expiryDate: "" });
+    setFile(null);
+    action.setError(null);
+  }
+
   async function add(e: React.FormEvent) {
     e.preventDefault();
-    const ok = await action.run(() =>
-      api("POST", `/employees/${employee.id}/documents`, {
-        category: form.category,
-        fileUrl: form.fileUrl,
-        expiryDate: form.expiryDate || undefined,
-      }),
-    );
+    if (mode === "upload" && file && file.size > MAX_UPLOAD_BYTES) {
+      action.setError("That file is bigger than 5 MB. Please make it smaller and try again.");
+      return;
+    }
+    const ok = await action.run(async () => {
+      if (mode === "upload") {
+        const body = new FormData();
+        body.append("category", form.category);
+        if (form.expiryDate) body.append("expiryDate", form.expiryDate);
+        body.append("file", file as File);
+        await api("POST", `/employees/${employee.id}/documents/upload`, body);
+      } else {
+        await api("POST", `/employees/${employee.id}/documents`, {
+          category: form.category,
+          fileUrl: form.fileUrl,
+          expiryDate: form.expiryDate || undefined,
+        });
+      }
+    });
     if (ok) {
-      setOpen(false);
-      setForm({ category: "", fileUrl: "", expiryDate: "" });
+      close();
       onChange();
     }
   }
@@ -153,6 +180,11 @@ export function DocumentsSection({ employee, onChange }: { employee: EmployeePro
         )
       }
     >
+      {action.error && !open && (
+        <div className="p-4">
+          <Alert>{action.error}</Alert>
+        </div>
+      )}
       {employee.documents.length === 0 ? (
         <EmptyState title="No documents" description="CNIC, contract, degree certificates and so on." />
       ) : (
@@ -162,10 +194,25 @@ export function DocumentsSection({ employee, onChange }: { employee: EmployeePro
             return (
               <li key={d.id} className="flex items-center justify-between gap-4 px-5 py-3 text-sm">
                 <div className="min-w-0">
-                  <a href={d.fileUrl} target="_blank" rel="noreferrer" className="font-medium text-brand-700 hover:underline">
-                    {d.category}
-                  </a>
+                  {d.fileName ? (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 font-medium text-brand-700 hover:underline"
+                      onClick={() =>
+                        action.run(async () => {
+                          await downloadFile(`/employees/${employee.id}/documents/${d.id}/file`, d.fileName ?? "document");
+                        })
+                      }
+                    >
+                      <Download className="size-4" aria-hidden /> {d.category}
+                    </button>
+                  ) : (
+                    <a href={d.fileUrl ?? "#"} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium text-brand-700 hover:underline">
+                      <ExternalLink className="size-4" aria-hidden /> {d.category}
+                    </a>
+                  )}
                   <p className="text-slate-500">
+                    {d.fileName ? `${d.fileName} · ${formatSize(d.sizeBytes)} · ` : "Link · "}
                     Added {formatDate(d.uploadedAt)}
                     {d.expiryDate && (
                       <>
@@ -182,10 +229,13 @@ export function DocumentsSection({ employee, onChange }: { employee: EmployeePro
                     size="sm"
                     variant="ghost"
                     aria-label={`Remove ${d.category}`}
-                    onClick={() => action.run(async () => {
-                      await api("DELETE", `/employees/${employee.id}/documents/${d.id}`);
-                      onChange();
-                    })}
+                    onClick={() => {
+                      if (!window.confirm(`Delete "${d.category}"? This can't be undone.`)) return;
+                      action.run(async () => {
+                        await api("DELETE", `/employees/${employee.id}/documents/${d.id}`);
+                        onChange();
+                      });
+                    }}
                   >
                     <Trash2 className="size-4" />
                   </Button>
@@ -195,20 +245,42 @@ export function DocumentsSection({ employee, onChange }: { employee: EmployeePro
           })}
         </ul>
       )}
-      <Modal open={open} onClose={() => setOpen(false)} title="Add document">
+      <Modal open={open} onClose={close} title="Add document">
         <form onSubmit={add} className="space-y-4">
           {action.error && <Alert>{action.error}</Alert>}
+          <div className="flex gap-4 text-sm" role="radiogroup" aria-label="How to add it">
+            <label className="flex items-center gap-2">
+              <input type="radio" name="doc-mode" checked={mode === "upload"} onChange={() => setMode("upload")} />
+              Upload a file
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="doc-mode" checked={mode === "link"} onChange={() => setMode("link")} />
+              Link to a file
+            </label>
+          </div>
           <Field label="Document type">
             <Input required placeholder="CNIC, Contract, Degree…" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
           </Field>
-          <Field label="Link to the file" hint="File upload isn't built yet — paste a link to where the file is stored (e.g. Google Drive).">
-            <Input type="url" required placeholder="https://" value={form.fileUrl} onChange={(e) => setForm({ ...form, fileUrl: e.target.value })} />
-          </Field>
+          {mode === "upload" ? (
+            <Field label="File" hint="PDF, JPG or PNG, up to 5 MB.">
+              <Input
+                type="file"
+                required
+                accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                className="file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1 file:text-sm"
+              />
+            </Field>
+          ) : (
+            <Field label="Link to the file" hint="For files kept somewhere else, e.g. Google Drive.">
+              <Input type="url" required placeholder="https://" value={form.fileUrl} onChange={(e) => setForm({ ...form, fileUrl: e.target.value })} />
+            </Field>
+          )}
           <Field label="Expiry date (optional)">
             <Input type="date" value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} />
           </Field>
           <div className="flex justify-end">
-            <Button type="submit" loading={action.busy}>Add document</Button>
+            <Button type="submit" loading={action.busy}>{mode === "upload" ? "Upload" : "Add document"}</Button>
           </div>
         </form>
       </Modal>
