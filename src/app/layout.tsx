@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+// Fonts from the design, bundled with the app (no Google Fonts request).
+import "@fontsource-variable/inter";
+import "@fontsource-variable/plus-jakarta-sans";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 

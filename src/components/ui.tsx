@@ -36,7 +36,7 @@ export function Button({
       {...props}
       disabled={disabled || loading}
       className={cx(
-        "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600",
+        "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-colors disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600",
         size === "sm" ? "px-2.5 py-1.5 text-xs" : "px-3.5 py-2 text-sm",
         buttonStyles[variant],
         className,
@@ -51,7 +51,7 @@ export function Button({
 // --- Form fields -----------------------------------------------------------
 
 const inputClass =
-  "block w-full rounded-lg border-0 bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-brand-600 disabled:bg-slate-50 disabled:text-slate-500";
+  "block w-full rounded-xl border-0 bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-inset ring-gray-200 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-brand-600 disabled:bg-slate-50 disabled:text-slate-500";
 
 // Links the label to its control by id (rather than wrapping it), so a
 // dropdown's option text never leaks into the field's accessible name.
@@ -110,7 +110,9 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{title}</h1>
+        <h1 className="text-2xl font-bold text-[#1a1a2e]" style={{ fontFamily: "var(--font-display)" }}>
+          {title}
+        </h1>
         {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
@@ -132,10 +134,10 @@ export function Card({
   padded?: boolean;
 }) {
   return (
-    <section className={cx("rounded-xl bg-white shadow-sm ring-1 ring-slate-200", className)}>
+    <section className={cx("rounded-2xl border border-gray-100 bg-white", className)}>
       {(title || actions) && (
-        <header className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-3">
-          {title && <h2 className="text-sm font-semibold text-slate-900">{title}</h2>}
+        <header className="flex items-center justify-between gap-4 border-b border-gray-100 px-5 py-3">
+          {title && <h2 className="text-sm font-semibold text-[#1a1a2e]">{title}</h2>}
           {actions}
         </header>
       )}
@@ -146,9 +148,11 @@ export function Card({
 
 export function Stat({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
   return (
-    <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-1 text-3xl font-semibold tracking-tight text-slate-900">{value}</p>
+    <div className="rounded-2xl border border-gray-100 bg-white p-5">
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className="mt-1 text-3xl font-bold text-[#1a1a2e]" style={{ fontFamily: "var(--font-display)" }}>
+        {value}
+      </p>
       {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
     </div>
   );

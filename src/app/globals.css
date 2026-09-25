@@ -1,16 +1,25 @@
 @import "tailwindcss";
 
-/* Quscer HRM palette. Brand colour lives in --brand-*; swap these to match
-   Quscer OS once its design tokens are shared. */
+/* Quscer People look, taken from the Figma Make design:
+   teal #00b4a6 accents, #f4f6f8 page, #1a1a2e ink, Plus Jakarta Sans for
+   headings and Inter for text. brand-600/700 are a slightly deeper teal so
+   white button text stays readable. */
 @theme {
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --color-brand-50: #e8faf8;
+  --color-brand-100: #ccf3ef;
+  --color-brand-500: #00b4a6;
+  --color-brand-600: #00857a;
+  --color-brand-700: #006e65;
+  --color-ink: #1a1a2e;
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-[#f4f6f8] text-ink antialiased;
+}
+
+h1,
+h2 {
+  font-family: var(--font-display);
 }

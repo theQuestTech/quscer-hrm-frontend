@@ -47,9 +47,11 @@ export function formatMoney(value: Money | null | undefined, currency = "PKR"): 
   if (value === null || value === undefined) return "—";
   const n = typeof value === "string" ? Number(value) : value;
   try {
+    // "PKR 180,000" as in the design (currency code, not "Rs").
     return new Intl.NumberFormat("en-PK", {
       style: "currency",
       currency,
+      currencyDisplay: "code",
       maximumFractionDigits: 2,
       minimumFractionDigits: 0,
     }).format(n);
