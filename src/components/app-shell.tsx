@@ -9,6 +9,8 @@ import type { Employee, Paginated } from "@/lib/types";
 import { Spinner, cx } from "./ui";
 import { Icon } from "./figma-icons";
 import { TimeSlider } from "./time-slider";
+import { PersonAvatar } from "./photo";
+import { initials } from "@/lib/format";
 
 // Layout from the Figma Make design: white 200px sidebar with the Quscer
 // People logo, 60px white top bar (search, time in/out slider, user), and
@@ -26,7 +28,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: "home", visible: () => true },
   { href: "/feed", label: "Feed", icon: "feed", visible: () => true },
-  { href: "/account", label: "My Profile", icon: "user", visible: () => true },
+  { href: "/profile", label: "My Profile", icon: "user", visible: ({ hasEmployee }) => hasEmployee },
   { href: "/employees", label: "Employees", icon: "users", visible: ({ can }) => can("hrm.employee.read") },
   { href: "/attendance", label: "Attendance", icon: "clock", visible: ({ can }) => can("hrm.attendance.read") },
   { href: "/leave", label: "Leave", icon: "calendar", visible: ({ can }) => can("hrm.leave.read") },
@@ -57,9 +59,7 @@ export function roleLabel(roles: string[]) {
   return roles.length ? roles.join(", ") : "No role";
 }
 
-export function initials(p: { firstName: string; lastName: string }) {
-  return `${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}`.toUpperCase();
-}
+export { initials } from "@/lib/format";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { me, loading, can } = useAuth();
@@ -270,9 +270,17 @@ function UserMenu() {
         aria-label="Account menu"
         className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2 transition-colors hover:bg-gray-50"
       >
-        <span className="grid size-8 place-items-center rounded-full bg-[#e8faf8] text-xs font-semibold text-[#00857a]">
-          {initials(me.user)}
-        </span>
+        {me.employee?.photoUpdatedAt ? (
+          <PersonAvatar
+            person={me.user}
+            photo={{ employeeId: me.employee.id, updatedAt: me.employee.photoUpdatedAt }}
+            size={32}
+          />
+        ) : (
+          <span className="grid size-8 place-items-center rounded-full bg-[#e8faf8] text-xs font-semibold text-[#00857a]">
+            {initials(me.user)}
+          </span>
+        )}
         <span className="hidden text-left sm:block">
           <span className="block text-sm font-semibold leading-none text-[#1a1a2e]">
             {me.user.firstName} {me.user.lastName}
@@ -312,7 +320,7 @@ function UserMenu() {
             onClick={() => setOpen(false)}
             className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:bg-[#f9fafb]"
           >
-            <Icon name="user" size={15} color="#9ca3af" /> My account
+            <Icon name="settings" size={15} color="#9ca3af" /> My Account
           </Link>
           <button
             type="button"

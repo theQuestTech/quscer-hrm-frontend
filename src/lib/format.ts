@@ -93,3 +93,7 @@ export const PK_REGIONS = [
   { code: "BA", name: "Balochistan" },
   { code: "ICT", name: "Islamabad Capital Territory" },
 ];
+
+export function initials(p: { firstName: string; lastName: string }): string {
+  return `${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}`.toUpperCase();
+}

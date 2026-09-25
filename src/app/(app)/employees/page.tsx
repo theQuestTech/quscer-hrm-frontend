@@ -11,6 +11,7 @@ import type { Branch, Department, Employee, Paginated } from "@/lib/types";
 import { Alert, Button, Card, EmptyState, Input, PageHeader, Select, Spinner, Table, Td, Th } from "@/components/ui";
 import { EmployeeStatusBadge } from "@/components/status-badges";
 import { RequirePermission } from "@/components/app-shell";
+import { PersonAvatar } from "@/components/photo";
 
 export default function EmployeesPage() {
   return (
@@ -135,10 +136,15 @@ function EmployeeDirectory() {
                     onClick={() => router.push(`/employees/${e.id}`)}
                   >
                     <Td>
-                      <Link href={`/employees/${e.id}`} className="font-medium text-slate-900 hover:text-brand-700" onClick={(ev) => ev.stopPropagation()}>
-                        {e.firstName} {e.lastName}
-                      </Link>
-                      <div className="text-xs text-slate-500">{e.email}</div>
+                      <div className="flex items-center gap-3">
+                        <PersonAvatar person={e} photo={e.photoUpdatedAt ? { employeeId: e.id, updatedAt: e.photoUpdatedAt } : null} />
+                        <div>
+                          <Link href={`/employees/${e.id}`} className="font-medium text-slate-900 hover:text-brand-700" onClick={(ev) => ev.stopPropagation()}>
+                            {e.firstName} {e.lastName}
+                          </Link>
+                          <div className="text-xs text-slate-500">{e.email}</div>
+                        </div>
+                      </div>
                     </Td>
                     <Td>{e.employeeNumber}</Td>
                     <Td>{e.designation}</Td>
