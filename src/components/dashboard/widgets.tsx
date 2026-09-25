@@ -10,7 +10,8 @@ import { api } from "@/lib/api";
 import { formatRelative } from "@/lib/format";
 import type { ActivityItem, AttendanceRecord, LeaveRequest, TodayCounts, TodayPerson, UpcomingLeaveItem } from "@/lib/types";
 import { Icon } from "@/components/figma-icons";
-import { initials } from "@/components/app-shell";
+import { initials } from "@/lib/format";
+import { PersonAvatar, usePhoto } from "@/components/photo";
 
 type IconName = Parameters<typeof Icon>[0]["name"];
 const display = { fontFamily: "var(--font-display)" };
@@ -217,19 +218,20 @@ export function AttendanceOverview({
 
 // --- People -------------------------------------------------------------------
 
-const AVATAR_TONES = ["#00b4a6", "#3b82f6", "#8b5cf6", "#f59e0b", "#ef4444", "#10b981", "#6366f1"];
-
-export function Avatar({ person, size = 32 }: { person: { id?: string; firstName: string; lastName: string }; size?: number }) {
-  const key = person.id ?? `${person.firstName}${person.lastName}`;
-  const tone = AVATAR_TONES[[...key].reduce((a, c) => a + c.charCodeAt(0), 0) % AVATAR_TONES.length];
+// Photo when the person has one, coloured initials otherwise.
+export function Avatar({
+  person,
+  size = 32,
+}: {
+  person: { id?: string; firstName: string; lastName: string; photoUpdatedAt?: string | null };
+  size?: number;
+}) {
   return (
-    <span
-      aria-hidden
-      className="grid flex-shrink-0 place-items-center rounded-full font-semibold text-white"
-      style={{ width: size, height: size, backgroundColor: tone, fontSize: size * 0.34 }}
-    >
-      {initials(person)}
-    </span>
+    <PersonAvatar
+      person={person}
+      photo={person.id && person.photoUpdatedAt ? { employeeId: person.id, updatedAt: person.photoUpdatedAt } : null}
+      size={size}
+    />
   );
 }
 
@@ -625,9 +627,16 @@ interface FeedLite {
   kind: string;
   body: string;
   createdAt: string;
-  author: { id: string; firstName: string; lastName: string } | null;
-  subjectEmployee: { id: string; firstName: string; lastName: string } | null;
+  author: FeedPerson | null;
+  subjectEmployee: FeedPerson | null;
 }
+
+type FeedPerson = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  photo?: { employeeId: string; photoUpdatedAt: string } | null;
+};
 
 export function CompanyNews() {
   const [posts, setPosts] = useState<FeedLite[] | null>(null);
@@ -646,7 +655,14 @@ export function CompanyNews() {
             const who = p.kind === "BIRTHDAY" ? p.subjectEmployee : p.author;
             return (
               <Link key={p.id} href="/feed" className="flex items-center gap-2.5 rounded-lg hover:bg-[#f9fafb]">
-                {who ? <Avatar person={who} /> : <span className="h-8 w-8" />}
+                {who ? (
+                  <PersonAvatar
+                    person={who}
+                    photo={who.photo ? { employeeId: who.photo.employeeId, updatedAt: who.photo.photoUpdatedAt } : null}
+                  />
+                ) : (
+                  <span className="h-8 w-8" />
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-xs font-semibold text-[#1a1a2e]">
                     {p.kind === "BIRTHDAY" ? `🎂 ${who?.firstName ?? ""}'s birthday` : `${who?.firstName ?? ""} ${who?.lastName ?? ""}`}
@@ -667,26 +683,34 @@ export function CompanyNews() {
 
 export function ProfilePanel({
   person,
+  photo,
   subtitle,
   badge,
   links,
   actions,
 }: {
   person: { firstName: string; lastName: string };
+  photo?: { employeeId: string; updatedAt: string | null } | null;
   subtitle: string;
   badge?: string | null;
   links: { label: string; href: string }[];
   actions: { label: string; href: string }[];
 }) {
+  const url = usePhoto(photo?.employeeId, photo?.updatedAt);
   return (
     <aside className="fixed bottom-0 right-0 top-[60px] hidden w-[240px] flex-shrink-0 flex-col overflow-y-auto border-l border-gray-100 bg-white xl:flex">
       <div
-        className="flex h-60 flex-shrink-0 items-center justify-center overflow-hidden"
-        style={{ background: "linear-gradient(135deg,#00b4a6,#34d399)" }}
+        className="flex h-60 flex-shrink-0 items-center justify-center overflow-hidden bg-gray-100"
+        style={url ? undefined : { background: "linear-gradient(135deg,#00b4a6,#34d399)" }}
       >
-        <span className="text-6xl font-bold text-white/95" style={display}>
-          {initials(person)}
-        </span>
+        {url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={url} alt={`${person.firstName} ${person.lastName}`} className="h-full w-full object-cover object-top" />
+        ) : (
+          <span className="text-6xl font-bold text-white/95" style={display}>
+            {initials(person)}
+          </span>
+        )}
       </div>
       <div className="space-y-4 p-4">
         <div>

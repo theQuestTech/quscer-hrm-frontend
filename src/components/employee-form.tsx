@@ -28,9 +28,23 @@ function initialValues(e?: Employee): EmployeeFormValues {
     managerId: e?.managerId ?? "",
     shiftId: e?.shiftId ?? "",
     regionCode: e?.regionCode ?? "",
+    fatherName: e?.fatherName ?? "",
+    cnic: e?.cnic ?? "",
+    gender: e?.gender ?? "",
+    maritalStatus: e?.maritalStatus ?? "",
+    bloodGroup: e?.bloodGroup ?? "",
+    personalEmail: e?.personalEmail ?? "",
+    address: e?.address ?? "",
+    city: e?.city ?? "",
     status: e?.status ?? "ACTIVE",
   };
 }
+
+// On edit, emptying one of these removes it (other blanks are left alone).
+const CLEARABLE = [
+  "probationEndDate", "contractEndDate", "dateOfBirth", "shiftId",
+  "fatherName", "cnic", "gender", "maritalStatus", "bloodGroup", "personalEmail", "address", "city",
+];
 
 // Shared by "Add employee" and the profile's edit form. Empty optional
 // fields are sent as undefined (create) so the backend keeps its defaults,
@@ -66,8 +80,7 @@ export function EmployeeForm({
       if (key === "status" && !employee) continue; // new employees start ACTIVE
       if (value === "") {
         // On edit, clearing an optional date or the shift removes it; other blanks are left alone.
-        if (employee && (key === "probationEndDate" || key === "contractEndDate" || key === "dateOfBirth" || key === "shiftId"))
-          payload[key] = null;
+        if (employee && CLEARABLE.includes(key)) payload[key] = null;
         continue;
       }
       payload[key] = value;
@@ -197,6 +210,52 @@ export function EmployeeForm({
           </Select>
         </Field>
       </div>
+
+      <fieldset className="grid gap-4 border-t border-slate-100 pt-6 sm:grid-cols-2 lg:grid-cols-3">
+        <legend className="mb-2 text-sm font-semibold text-[#1a1a2e]">Personal details (optional — the employee can fill these in too)</legend>
+        <Field label="Father's name">
+          <Input value={values.fatherName} onChange={set("fatherName")} maxLength={100} />
+        </Field>
+        <Field label="CNIC" hint="Format: 35202-1234567-1">
+          <Input value={values.cnic} onChange={set("cnic")} placeholder="35202-1234567-1" pattern="\d{5}-\d{7}-\d" />
+        </Field>
+        <Field label="Gender">
+          <Select value={values.gender} onChange={set("gender")}>
+            <option value="">—</option>
+            <option value="MALE">Male</option>
+            <option value="FEMALE">Female</option>
+            <option value="OTHER">Other</option>
+          </Select>
+        </Field>
+        <Field label="Marital status">
+          <Select value={values.maritalStatus} onChange={set("maritalStatus")}>
+            <option value="">—</option>
+            <option value="SINGLE">Single</option>
+            <option value="MARRIED">Married</option>
+            <option value="DIVORCED">Divorced</option>
+            <option value="WIDOWED">Widowed</option>
+          </Select>
+        </Field>
+        <Field label="Blood group">
+          <Select value={values.bloodGroup} onChange={set("bloodGroup")}>
+            <option value="">—</option>
+            {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Personal email">
+          <Input type="email" value={values.personalEmail} onChange={set("personalEmail")} />
+        </Field>
+        <Field label="City">
+          <Input value={values.city} onChange={set("city")} maxLength={60} />
+        </Field>
+        <Field label="Home address" className="sm:col-span-2">
+          <Input value={values.address} onChange={set("address")} maxLength={300} />
+        </Field>
+      </fieldset>
 
       <div className="flex justify-end gap-2">
         {onCancel && (

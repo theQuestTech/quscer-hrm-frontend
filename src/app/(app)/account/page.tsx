@@ -7,8 +7,11 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader } from "@/components/ui";
 
+// My Account: how you sign in. Your company list shows for HR admins (who
+// can add companies) and anyone who belongs to more than one company.
 export default function AccountPage() {
-  const { me } = useAuth();
+  const { me, can } = useAuth();
+  const showCompanies = !!me && (can("hrm.settings.write") || me.companies.length > 1);
   const [form, setForm] = useState({ currentPassword: "", newPassword: "", confirm: "" });
   const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -37,9 +40,9 @@ export default function AccountPage() {
 
   return (
     <>
-      <PageHeader title="My account" description={me?.user.email} />
+      <PageHeader title="My Account" description={`Signed in as ${me?.user.email ?? ""}`} />
       <div className="grid gap-6 lg:grid-cols-2">
-      <Companies />
+      {showCompanies && <Companies />}
       <Card title="Change password">
         <form onSubmit={submit} className="space-y-4">
           {message && <Alert tone={message.tone}>{message.text}</Alert>}
@@ -86,7 +89,8 @@ export default function AccountPage() {
 // looking after its clients. Other companies add you from their Settings →
 // Users; "Add a company" sets up a brand-new one with you as HR Admin.
 function Companies() {
-  const { me, switchCompany, addCompany } = useAuth();
+  const { me, can, switchCompany, addCompany } = useAuth();
+  const canAdd = can("hrm.settings.write");
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
@@ -125,9 +129,11 @@ function Companies() {
       title="My companies"
       padded={false}
       actions={
-        <Button size="sm" variant="secondary" onClick={() => setAdding(true)}>
-          <Plus className="size-4" /> Add a company
-        </Button>
+        canAdd && (
+          <Button size="sm" variant="secondary" onClick={() => setAdding(true)}>
+            <Plus className="size-4" /> Add a company
+          </Button>
+        )
       }
     >
       {error && !adding && (

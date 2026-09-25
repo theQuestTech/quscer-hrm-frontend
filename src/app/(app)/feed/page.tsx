@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { formatRelative, fullName } from "@/lib/format";
 import type { FeedComment, FeedPage, FeedPost, Person } from "@/lib/types";
 import { Alert, Button, Card, EmptyState, Modal, PageHeader, Spinner, Textarea, cx } from "@/components/ui";
+import { PersonAvatar } from "@/components/photo";
 
 // Company feed: everyone can post (text + up to 4 pictures), like and
 // comment. HR can post pinned announcements and remove anything. Birthday
@@ -160,7 +161,7 @@ function Composer({ canAnnounce, onPosted }: { canAnnounce: boolean; onPosted: (
     <Card>
       <form onSubmit={post} className="space-y-3">
         <div className="flex gap-3">
-          <Avatar person={me?.user ?? null} />
+          <Avatar person={mePerson(me)} />
           <Textarea
             aria-label="Write a post"
             placeholder={`What's new, ${me?.user.firstName ?? ""}?`}
@@ -394,7 +395,7 @@ function PostCard({
       </div>
 
       {showComments && (
-        <Comments postId={post.id} onCount={(commentCount) => onChange(post.id, { commentCount })} myName={me?.user ?? null} />
+        <Comments postId={post.id} onCount={(commentCount) => onChange(post.id, { commentCount })} myName={mePerson(me)} />
       )}
 
       <Modal open={likers !== null} onClose={() => setLikers(null)} title="Liked by">
@@ -567,17 +568,20 @@ function Comments({
   );
 }
 
-function Avatar({ person, small }: { person: { firstName: string; lastName: string } | null; small?: boolean }) {
-  const initials = person ? `${person.firstName[0] ?? ""}${person.lastName[0] ?? ""}`.toUpperCase() : "?";
-  return (
-    <div
-      aria-hidden
-      className={cx(
-        "grid shrink-0 place-items-center rounded-full bg-brand-100 font-semibold text-brand-700",
-        small ? "size-7 text-[11px]" : "size-9 text-xs",
-      )}
-    >
-      {initials}
-    </div>
-  );
+// The signed-in person, with their photo when they have one.
+function mePerson(me: ReturnType<typeof useAuth>["me"]): Person | null {
+  if (!me) return null;
+  const e = me.employee;
+  return {
+    id: me.user.id,
+    firstName: me.user.firstName,
+    lastName: me.user.lastName,
+    photo: e?.photoUpdatedAt ? { employeeId: e.id, photoUpdatedAt: e.photoUpdatedAt } : null,
+  };
+}
+
+function Avatar({ person, small }: { person: Person | { firstName: string; lastName: string } | null; small?: boolean }) {
+  if (!person) return <PersonAvatar person={{ firstName: "?", lastName: "" }} size={small ? 28 : 36} />;
+  const photo = "photo" in person && person.photo ? { employeeId: person.photo.employeeId, updatedAt: person.photo.photoUpdatedAt } : null;
+  return <PersonAvatar person={person} photo={photo} size={small ? 28 : 36} />;
 }

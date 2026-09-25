@@ -16,6 +16,7 @@ export interface Me {
     firstName: string;
     lastName: string;
     designation: string;
+    photoUpdatedAt: string | null;
   } | null;
 }
 
@@ -86,6 +87,15 @@ export interface Employee {
   userId: string | null;
   shiftId: string | null;
   exitDate: string | null;
+  photoUpdatedAt: string | null;
+  fatherName: string | null;
+  cnic: string | null;
+  gender: string | null;
+  maritalStatus: string | null;
+  bloodGroup: string | null;
+  personalEmail: string | null;
+  address: string | null;
+  city: string | null;
   branch?: Branch | null;
   department?: Department | null;
   shift?: Shift | null;
@@ -328,13 +338,21 @@ export interface TodayPerson {
   lastName: string;
   designation: string;
   employeeNumber: string;
+  photoUpdatedAt: string | null;
   status: TodayStatus;
   checkIn: string | null;
 }
 
 export interface UpcomingLeaveItem {
   id: string;
-  employee: { id: string; firstName: string; lastName: string; designation: string; employeeNumber: string };
+  employee: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    designation: string;
+    employeeNumber: string;
+    photoUpdatedAt?: string | null;
+  };
   leaveType: string;
   startDate: string;
   endDate: string;
@@ -432,7 +450,13 @@ export interface FinalSettlement {
 }
 
 export type FeedPostKind = "POST" | "ANNOUNCEMENT" | "BIRTHDAY";
-export type Person = { id: string; firstName: string; lastName: string };
+// A person as the feed returns them, with their photo in this company.
+export type Person = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  photo?: { employeeId: string; photoUpdatedAt: string } | null;
+};
 
 export interface FeedPost {
   id: string;

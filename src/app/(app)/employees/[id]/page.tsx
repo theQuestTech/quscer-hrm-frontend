@@ -15,6 +15,7 @@ import { EmployeeForm } from "@/components/employee-form";
 import { RequirePermission } from "@/components/app-shell";
 import { AccessSection, BankSection, ContactsSection, DocumentsSection, PaySection } from "./sections";
 import { SettlementSection } from "./settlement-section";
+import { PhotoEditor } from "@/components/photo";
 
 type Tab = "overview" | "contacts" | "documents" | "bank" | "pay" | "settlement" | "access";
 
@@ -57,6 +58,15 @@ function Profile() {
         description={`${employee.designation} · ${employee.employeeNumber}`}
         actions={<EmployeeStatusBadge status={employee.status} />}
       />
+      <div className="mb-6">
+        <PhotoEditor
+          employeeId={employee.id}
+          person={employee}
+          updatedAt={employee.photoUpdatedAt}
+          canEdit={can("hrm.employee.write")}
+          onChange={() => reload()}
+        />
+      </div>
       <Tabs tabs={tabs} value={tab} onChange={setTab} />
 
       {tab === "overview" &&
@@ -101,6 +111,14 @@ function Profile() {
                   value={employee.shift ? `${employee.shift.name} (${employee.shift.startTime}–${employee.shift.endTime})` : "None — no late or overtime tracking"}
                 />
                 {employee.exitDate && <Detail label="Left on" value={formatDate(employee.exitDate)} />}
+                <Detail label="Date of birth" value={formatDate(employee.dateOfBirth)} />
+                <Detail label="Father's name" value={employee.fatherName} />
+                <Detail label="CNIC" value={employee.cnic} />
+                <Detail label="Gender" value={employee.gender ? humanize(employee.gender) : null} />
+                <Detail label="Marital status" value={employee.maritalStatus ? humanize(employee.maritalStatus) : null} />
+                <Detail label="Blood group" value={employee.bloodGroup} />
+                <Detail label="Personal email" value={employee.personalEmail} />
+                <Detail label="Address" value={[employee.address, employee.city].filter(Boolean).join(", ")} />
                 <Detail label="Tax jurisdiction" value={[employee.countryCode, employee.regionCode].filter(Boolean).join(" / ") || "Not set — payroll will skip this employee"} />
               </dl>
             </Card>

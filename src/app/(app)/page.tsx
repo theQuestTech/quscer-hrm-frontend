@@ -141,7 +141,7 @@ function personalQuickStats(p: ReturnType<typeof usePersonal>) {
 }
 
 const EMPLOYEE_LINKS = [
-  { label: "My Profile", href: "/account" },
+  { label: "My Profile", href: "/profile" },
   { label: "Attendance", href: "/attendance" },
   { label: "Leave Balance", href: "/leave" },
   { label: "Payslips", href: "/payslips" },
@@ -204,7 +204,10 @@ function EmployeeDashboard({ me }: { me: Me }) {
         <RecentActivity items={p.my?.activity ?? []} />
         <CompanyNews />
       </div>
-      <ProfilePanel person={emp} subtitle={emp.designation} badge={emp.employeeNumber} links={EMPLOYEE_LINKS} actions={EMPLOYEE_ACTIONS} />
+      <ProfilePanel
+        person={emp}
+        photo={{ employeeId: emp.id, updatedAt: emp.photoUpdatedAt }}
+        subtitle={emp.designation} badge={emp.employeeNumber} links={EMPLOYEE_LINKS} actions={EMPLOYEE_ACTIONS} />
     </>
   );
 }
@@ -269,6 +272,7 @@ function ManagerDashboard({ me }: { me: Me }) {
       </div>
       <ProfilePanel
         person={emp ?? me.user}
+        photo={emp ? { employeeId: emp.id, updatedAt: emp.photoUpdatedAt } : null}
         subtitle={emp?.designation ?? roleLabel(me.roles)}
         badge={emp?.employeeNumber}
         links={[{ label: "My Team", href: "/employees" }, ...EMPLOYEE_LINKS]}
@@ -367,6 +371,7 @@ function HrDashboard({ me, can }: { me: Me; can: (p: string) => boolean }) {
       </div>
       <ProfilePanel
         person={emp ?? me.user}
+        photo={emp ? { employeeId: emp.id, updatedAt: emp.photoUpdatedAt } : null}
         subtitle={emp?.designation ?? roleLabel(me.roles)}
         badge={emp?.employeeNumber}
         links={[
