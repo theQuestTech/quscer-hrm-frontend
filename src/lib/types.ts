@@ -81,15 +81,18 @@ export interface Employee {
   departmentId: string | null;
   managerId: string | null;
   userId: string | null;
+  shiftId: string | null;
+  exitDate: string | null;
   branch?: Branch | null;
   department?: Department | null;
+  shift?: Shift | null;
 }
 
 export interface EmployeeProfile extends Employee {
   manager: { id: string; firstName: string; lastName: string } | null;
   directReports: { id: string; firstName: string; lastName: string; designation: string }[];
   emergencyContacts: { id: string; name: string; relationship: string; phone: string; isPrimary: boolean }[];
-  documents: { id: string; category: string; fileUrl: string; expiryDate: string | null; uploadedAt: string }[];
+  documents: EmployeeDocument[];
   bankDetail: {
     id: string;
     bankName: string;
@@ -97,6 +100,18 @@ export interface EmployeeProfile extends Employee {
     accountNumberLast4: string | null;
     branchCode: string | null;
   } | null;
+}
+
+// Either an uploaded file (fileName set) or a link to one kept elsewhere.
+export interface EmployeeDocument {
+  id: string;
+  category: string;
+  fileUrl: string | null;
+  fileName: string | null;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  expiryDate: string | null;
+  uploadedAt: string;
 }
 
 export interface Paginated<T> {
@@ -118,6 +133,24 @@ export interface AttendanceRecord {
   status: AttendanceStatus;
   source: "MANUAL" | "APP_CHECKIN" | "BIOMETRIC";
   notes: string | null;
+  lateMinutes: number;
+  earlyExitMinutes: number;
+  overtimeMinutes: number;
+  workedMinutes: number | null;
+}
+
+export type CorrectionStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+export interface AttendanceCorrection {
+  id: string;
+  employeeId: string;
+  date: string;
+  checkIn: string | null;
+  checkOut: string | null;
+  reason: string;
+  status: CorrectionStatus;
+  createdAt: string;
+  employee: { id: string; firstName: string; lastName: string; employeeNumber: string };
 }
 
 export interface LeaveType {
@@ -125,9 +158,13 @@ export interface LeaveType {
   name: string;
   isPaid: boolean;
   defaultAnnualDays: number;
+  accrual: "ANNUAL" | "MONTHLY";
+  maxCarryForwardDays: number;
+  isEncashable: boolean;
+  allowNegativeBalance: boolean;
 }
 
-export type LeaveStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+export type LeaveStatus = "PENDING" | "FIRST_APPROVED" | "APPROVED" | "REJECTED" | "CANCELLED";
 
 export interface LeaveRequest {
   id: string;
@@ -148,7 +185,9 @@ export interface LeaveBalance {
   year: number;
   allocatedDays: number;
   usedDays: number;
+  pendingDays: number;
   remainingDays: number;
+  isManualAllocation: boolean;
 }
 
 export type SalaryComponentType = "EARNING" | "DEDUCTION" | "EMPLOYER_CONTRIBUTION";
@@ -260,6 +299,8 @@ export interface OrgSettings {
     defaultCurrency: string;
     defaultTimezone: string;
     weekendDays: number[];
+    leaveApprovalSteps: number;
+    lateGraceMinutes: number;
   } | null;
 }
 
@@ -276,4 +317,36 @@ export interface DashboardSummary {
     employee: { id: string; firstName: string; lastName: string };
   }[];
   latestPayrollRun: { id: string; periodStart: string; periodEnd: string; status: PayrollStatus } | null;
+}
+
+export type ExitReason = "RESIGNATION" | "TERMINATION" | "END_OF_CONTRACT" | "RETIREMENT" | "OTHER";
+export type SettlementStatus = "DRAFT" | "APPROVED" | "PAID";
+
+export interface SettlementLine {
+  label: string;
+  type: "earning" | "deduction" | "statutory_deduction" | "loan_deduction";
+  amount: number;
+}
+
+export interface FinalSettlement {
+  id: string;
+  employeeId: string;
+  lastWorkingDay: string;
+  reason: ExitReason;
+  status: SettlementStatus;
+  currency: string;
+  totalEarnings: Money;
+  totalDeductions: Money;
+  netAmount: Money;
+  breakdown: SettlementLine[];
+  inputs: {
+    includeGratuity?: boolean;
+    noticeDaysInLieu?: number;
+    noticeDaysShort?: number;
+    adjustments?: { label: string; amount: number; type: "earning" | "deduction" }[];
+    notes?: string;
+    warnings?: string[];
+  };
+  approvedAt: string | null;
+  paidAt: string | null;
 }

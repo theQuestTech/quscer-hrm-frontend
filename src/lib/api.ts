@@ -52,14 +52,16 @@ async function request(method: string, path: string, body?: unknown): Promise<Re
   const headers: Record<string, string> = {};
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  // FormData (file uploads) sets its own multipart Content-Type.
+  const isForm = typeof FormData !== "undefined" && body instanceof FormData;
+  if (body !== undefined && !isForm) headers["Content-Type"] = "application/json";
 
   let res: Response;
   try {
     res = await fetch(`${API_URL}${path}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, "Can't reach the server. Check your connection and try again.");
@@ -73,6 +75,7 @@ async function request(method: string, path: string, body?: unknown): Promise<Re
   return res;
 }
 
+// `body` may be a FormData for file uploads.
 export async function api<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await request(method, path, body);
   const text = await res.text();

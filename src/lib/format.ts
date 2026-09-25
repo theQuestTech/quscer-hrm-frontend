@@ -19,6 +19,14 @@ export function formatTime(value: string | null | undefined): string {
   return new Date(value).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
+// 65 → "1h 5m"; 0 or null → "—".
+export function formatMinutes(value: number | null | undefined): string {
+  if (!value) return "—";
+  const h = Math.floor(value / 60);
+  const m = value % 60;
+  return h ? `${h}h${m ? ` ${m}m` : ""}` : `${m}m`;
+}
+
 export function formatMonth(value: string): string {
   return new Date(value).toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
 }

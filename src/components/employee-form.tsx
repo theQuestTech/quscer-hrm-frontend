@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useApi } from "@/lib/use-api";
 import { PK_REGIONS, humanize, toDateInput } from "@/lib/format";
-import type { Branch, Department, Employee, EmploymentType, Paginated } from "@/lib/types";
+import type { Branch, Department, Employee, EmploymentType, Paginated, Shift } from "@/lib/types";
 import { Alert, Button, Field, Input, Select } from "./ui";
 
 const EMPLOYMENT_TYPES: EmploymentType[] = ["FULL_TIME", "PART_TIME", "CONTRACT", "INTERN"];
@@ -25,6 +25,7 @@ function initialValues(e?: Employee): EmployeeFormValues {
     branchId: e?.branchId ?? "",
     departmentId: e?.departmentId ?? "",
     managerId: e?.managerId ?? "",
+    shiftId: e?.shiftId ?? "",
     regionCode: e?.regionCode ?? "",
     status: e?.status ?? "ACTIVE",
   };
@@ -49,6 +50,7 @@ export function EmployeeForm({
   const [saving, setSaving] = useState(false);
   const branches = useApi<Branch[]>("/branches");
   const departments = useApi<Department[]>("/departments");
+  const shifts = useApi<Shift[]>("/shifts");
   const managers = useApi<Paginated<Employee>>("/employees?pageSize=100&status=ACTIVE");
 
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -62,8 +64,8 @@ export function EmployeeForm({
     for (const [key, value] of Object.entries(values)) {
       if (key === "status" && !employee) continue; // new employees start ACTIVE
       if (value === "") {
-        // On edit, clearing an optional date removes it; other blanks are left alone.
-        if (employee && (key === "probationEndDate" || key === "contractEndDate")) payload[key] = null;
+        // On edit, clearing an optional date or the shift removes it; other blanks are left alone.
+        if (employee && (key === "probationEndDate" || key === "contractEndDate" || key === "shiftId")) payload[key] = null;
         continue;
       }
       payload[key] = value;
@@ -153,6 +155,16 @@ export function EmployeeForm({
             {visibleDepartments.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Shift" hint={shifts.data?.length === 0 ? "Add shifts in Settings to track late arrival and overtime" : undefined}>
+          <Select value={values.shiftId} onChange={set("shiftId")}>
+            <option value="">No shift</option>
+            {shifts.data?.map((sh) => (
+              <option key={sh.id} value={sh.id}>
+                {sh.name} ({sh.startTime}–{sh.endTime})
               </option>
             ))}
           </Select>

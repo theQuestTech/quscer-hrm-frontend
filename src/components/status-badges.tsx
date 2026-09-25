@@ -1,6 +1,13 @@
 import { Badge, type BadgeTone } from "./ui";
 import { humanize } from "@/lib/format";
-import type { AttendanceStatus, EmployeeStatus, LeaveStatus, PayrollStatus } from "@/lib/types";
+import type {
+  AttendanceStatus,
+  CorrectionStatus,
+  EmployeeStatus,
+  LeaveStatus,
+  PayrollStatus,
+  SettlementStatus,
+} from "@/lib/types";
 
 const employeeTones: Record<EmployeeStatus, BadgeTone> = {
   ACTIVE: "green",
@@ -11,9 +18,22 @@ const employeeTones: Record<EmployeeStatus, BadgeTone> = {
 
 const leaveTones: Record<LeaveStatus, BadgeTone> = {
   PENDING: "yellow",
+  FIRST_APPROVED: "blue",
   APPROVED: "green",
   REJECTED: "red",
   CANCELLED: "gray",
+};
+
+const correctionTones: Record<CorrectionStatus, BadgeTone> = {
+  PENDING: "yellow",
+  APPROVED: "green",
+  REJECTED: "red",
+};
+
+const settlementTones: Record<SettlementStatus, BadgeTone> = {
+  DRAFT: "gray",
+  APPROVED: "yellow",
+  PAID: "green",
 };
 
 const attendanceTones: Record<AttendanceStatus, BadgeTone> = {
@@ -36,7 +56,17 @@ export function EmployeeStatusBadge({ status }: { status: EmployeeStatus }) {
 }
 
 export function LeaveStatusBadge({ status }: { status: LeaveStatus }) {
-  return <Badge tone={leaveTones[status]}>{humanize(status)}</Badge>;
+  return (
+    <Badge tone={leaveTones[status]}>{status === "FIRST_APPROVED" ? "Waiting for 2nd approval" : humanize(status)}</Badge>
+  );
+}
+
+export function CorrectionStatusBadge({ status }: { status: CorrectionStatus }) {
+  return <Badge tone={correctionTones[status]}>{humanize(status)}</Badge>;
+}
+
+export function SettlementStatusBadge({ status }: { status: SettlementStatus }) {
+  return <Badge tone={settlementTones[status]}>{humanize(status)}</Badge>;
 }
 
 export function AttendanceStatusBadge({ status }: { status: AttendanceStatus }) {

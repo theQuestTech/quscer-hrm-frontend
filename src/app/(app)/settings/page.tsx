@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/use-api";
 import { PK_REGIONS, WEEKDAYS, formatDate } from "@/lib/format";
 import type { AppUser, Branch, CostCentre, Department, Holiday, LeaveType, OrgSettings, Role, Shift } from "@/lib/types";
-import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Spinner, Table, Tabs, Td, Th } from "@/components/ui";
+import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, Table, Tabs, Td, Th } from "@/components/ui";
 import { RequirePermission } from "@/components/app-shell";
 import { CrudList } from "./crud-list";
 
@@ -91,6 +91,8 @@ function CompanyForm({ settings, onSaved }: { settings: OrgSettings; onSaved: ()
     defaultCurrency: locale?.defaultCurrency ?? "PKR",
     defaultTimezone: locale?.defaultTimezone ?? "Asia/Karachi",
     weekendDays: locale?.weekendDays ?? [0, 6],
+    leaveApprovalSteps: locale?.leaveApprovalSteps ?? 1,
+    lateGraceMinutes: locale?.lateGraceMinutes ?? 15,
   });
   const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -148,6 +150,27 @@ function CompanyForm({ settings, onSaved }: { settings: OrgSettings; onSaved: ()
           </div>
           <p className="mt-1 text-xs text-slate-500">Weekend days aren&apos;t counted as leave days.</p>
         </fieldset>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Leave approval" hint="Two steps: a second, different person must also approve">
+            <Select
+              value={String(form.leaveApprovalSteps)}
+              onChange={(e) => setForm({ ...form, leaveApprovalSteps: Number(e.target.value) })}
+            >
+              <option value="1">One person approves</option>
+              <option value="2">Two people approve</option>
+            </Select>
+          </Field>
+          <Field label="Late after (minutes)" hint="Grace time after the shift starts before a check-in counts as late">
+            <Input
+              type="number"
+              min={0}
+              max={240}
+              required
+              value={String(form.lateGraceMinutes)}
+              onChange={(e) => setForm({ ...form, lateGraceMinutes: Number(e.target.value) })}
+            />
+          </Field>
+        </div>
         <Button type="submit" loading={saving}>
           Save changes
         </Button>
@@ -233,7 +256,7 @@ function Shifts() {
       title="Shifts"
       itemName="shift"
       path="/shifts"
-      description="Working hours templates. Assigning shifts to employees and late/overtime calculation come later."
+      description="Working hours. Pick a shift on each employee's profile to track late arrival, early leaving and overtime. A shift that ends before it starts (e.g. 22:00–06:00) runs overnight."
       fields={[
         { key: "name", label: "Name", required: true, placeholder: "General shift" },
         { key: "startTime", label: "Starts", type: "time", required: true, defaultValue: "09:00" },
@@ -277,16 +300,48 @@ function LeaveTypes() {
       itemName="leave type"
       path="/leave-types"
       canDelete={false}
-      description="Days per year is what each employee gets by default. Leave of an unpaid type is deducted from pay."
+      description="Leave of an unpaid type is deducted from pay. Paid leave can't go over what's left unless you allow it."
       fields={[
         { key: "name", label: "Name", required: true, placeholder: "Annual" },
         { key: "defaultAnnualDays", label: "Days per year", type: "number", required: true, defaultValue: "0" },
         { key: "isPaid", label: "Paid leave", type: "checkbox", defaultValue: true },
+        {
+          key: "accrual",
+          label: "How days are given",
+          type: "select",
+          required: true,
+          defaultValue: "ANNUAL",
+          hint: "People who join mid-year get a share either way.",
+          options: [
+            { value: "ANNUAL", label: "All at the start of the year" },
+            { value: "MONTHLY", label: "A little each month" },
+          ],
+        },
+        {
+          key: "maxCarryForwardDays",
+          label: "Carry over to next year (max days)",
+          type: "number",
+          defaultValue: "0",
+          hint: "0 = unused days are lost at year end",
+        },
+        { key: "isEncashable", label: "Pay out unused days when someone leaves", type: "checkbox", defaultValue: false },
+        { key: "allowNegativeBalance", label: "Allow taking more than what's left", type: "checkbox", defaultValue: false },
       ]}
       columns={[
         { label: "Name", render: (t) => <span className="font-medium text-slate-900">{t.name}</span> },
         { label: "Days per year", render: (t) => (t.isPaid ? t.defaultAnnualDays : "—") },
         { label: "Pay", render: (t) => (t.isPaid ? <Badge tone="green">Paid</Badge> : <Badge tone="yellow">Unpaid</Badge>) },
+        { label: "Given", render: (t) => (t.isPaid ? (t.accrual === "MONTHLY" ? "Monthly" : "Yearly") : "—") },
+        { label: "Carry over", render: (t) => (t.isPaid && t.maxCarryForwardDays ? `up to ${t.maxCarryForwardDays}` : "—") },
+        {
+          label: "Rules",
+          render: (t) => (
+            <div className="flex flex-wrap gap-1">
+              {t.isEncashable && <Badge tone="blue">Paid out on exit</Badge>}
+              {t.allowNegativeBalance && <Badge tone="yellow">Can go negative</Badge>}
+            </div>
+          ),
+        },
       ]}
     />
   );
