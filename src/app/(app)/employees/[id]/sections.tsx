@@ -704,7 +704,8 @@ export function AccessSection({ employee, onChange }: { employee: EmployeeProfil
         <form onSubmit={grant} className="space-y-4">
           <p className="text-sm text-slate-600">
             Let {employee.firstName} sign in with <span className="font-medium">{employee.email}</span> to check in, request leave and download payslips.
-            Share the starting password with them yourself.
+            Share the starting password with them yourself. If this email already has a login (for example with another company),
+            it&apos;s linked instead and they keep using their own password.
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Starting password" hint="At least 8 characters">

@@ -93,6 +93,7 @@ function CompanyForm({ settings, onSaved }: { settings: OrgSettings; onSaved: ()
     weekendDays: locale?.weekendDays ?? [0, 6],
     leaveApprovalSteps: locale?.leaveApprovalSteps ?? 1,
     lateGraceMinutes: locale?.lateGraceMinutes ?? 15,
+    birthdayPostsEnabled: locale?.birthdayPostsEnabled ?? true,
   });
   const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -171,6 +172,18 @@ function CompanyForm({ settings, onSaved }: { settings: OrgSettings; onSaved: ()
             />
           </Field>
         </div>
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={form.birthdayPostsEnabled}
+            onChange={(e) => setForm({ ...form, birthdayPostsEnabled: e.target.checked })}
+          />
+          <span>
+            Post birthday wishes on the feed
+            <span className="block text-xs text-slate-500">Uses each employee&apos;s date of birth. Only the day is shown, never the age.</span>
+          </span>
+        </label>
         <Button type="submit" loading={saving}>
           Save changes
         </Button>
@@ -359,6 +372,34 @@ function Users() {
   const [error, setError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [addingPerson, setAddingPerson] = useState(false);
+  const [person, setPerson] = useState({ email: "", firstName: "", lastName: "", password: "", roleIds: [] as string[] });
+
+  // Someone without an employee record: outsourced HR, accountant… If the
+  // email already has a login (e.g. from their own firm) they keep it.
+  async function addPerson(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await api<{ existingLogin: boolean }>("POST", "/users", {
+        ...person,
+        password: person.password || undefined,
+      });
+      setResetDone(
+        res.existingLogin
+          ? `${person.firstName} already had a login, so they sign in with their own password and pick this company from the menu.`
+          : `${person.firstName} can now sign in with ${person.email} and the password you set.`,
+      );
+      setAddingPerson(false);
+      setPerson({ email: "", firstName: "", lastName: "", password: "", roleIds: [] });
+      users.reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not add");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   function open(user: AppUser) {
     setSelected(user.roles.map((r) => r.id));
@@ -399,7 +440,15 @@ function Users() {
   }
 
   async function toggleActive(user: AppUser) {
-    if (user.isActive && !window.confirm(`Turn off ${user.firstName}'s access? They won't be able to sign in.`)) return;
+    if (
+      user.isActive &&
+      !window.confirm(
+        user.hasOtherCompanies
+          ? `Turn off ${user.firstName}'s access to this company? Their other companies aren't affected.`
+          : `Turn off ${user.firstName}'s access? They won't be able to sign in.`,
+      )
+    )
+      return;
     setListError(null);
     try {
       await api("PATCH", `/users/${user.id}`, { isActive: !user.isActive });
@@ -411,9 +460,25 @@ function Users() {
 
   return (
     <div className="space-y-6">
-      <Card title="People who can sign in" padded={false}>
+      <Card
+        title="People who can sign in"
+        padded={false}
+        actions={
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              setError(null);
+              setAddingPerson(true);
+            }}
+          >
+            Add person
+          </Button>
+        }
+      >
         <p className="border-b border-slate-100 px-5 py-2 text-xs text-slate-500">
-          To give an employee a login, open their profile → Login access.
+          To give an employee a login, open their profile → Login access. Use &ldquo;Add person&rdquo; for people who aren&apos;t
+          employees here, like an outsourced HR company or your accountant.
         </p>
         {resetDone && (
           <div className="p-4">
@@ -447,6 +512,7 @@ function Users() {
                         {u.firstName} {u.lastName} {isMe && <span className="text-xs text-slate-500">(you)</span>}
                       </p>
                       <p className="text-xs text-slate-500">{u.email}</p>
+                      {u.hasOtherCompanies && <p className="text-xs text-slate-500">Also works for other companies</p>}
                     </Td>
                     <Td>
                       <div className="flex flex-wrap gap-1">
@@ -460,18 +526,20 @@ function Users() {
                           <Button size="sm" variant="secondary" onClick={() => open(u)}>
                             Roles
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => {
-                              setError(null);
-                              setResetDone(null);
-                              setNewPassword("");
-                              setResetting(u);
-                            }}
-                          >
-                            Reset password
-                          </Button>
+                          {!u.hasOtherCompanies && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => {
+                                setError(null);
+                                setResetDone(null);
+                                setNewPassword("");
+                                setResetting(u);
+                              }}
+                            >
+                              Reset password
+                            </Button>
+                          )}
                           <Button size="sm" variant="ghost" onClick={() => toggleActive(u)}>
                             {u.isActive ? "Turn off" : "Turn on"}
                           </Button>
@@ -514,6 +582,55 @@ function Users() {
           <div className="flex justify-end">
             <Button type="submit" loading={saving}>
               Reset password
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal open={addingPerson} onClose={() => setAddingPerson(false)} title="Add a person">
+        <form onSubmit={addPerson} className="space-y-4">
+          {error && <Alert>{error}</Alert>}
+          <Field label="Email">
+            <Input type="email" required value={person.email} onChange={(e) => setPerson({ ...person, email: e.target.value })} />
+          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="First name">
+              <Input required value={person.firstName} onChange={(e) => setPerson({ ...person, firstName: e.target.value })} />
+            </Field>
+            <Field label="Last name">
+              <Input required value={person.lastName} onChange={(e) => setPerson({ ...person, lastName: e.target.value })} />
+            </Field>
+          </div>
+          <Field label="Starting password" hint="Only needed if this email doesn't have a login yet. At least 8 characters.">
+            <Input
+              type="text"
+              autoComplete="off"
+              minLength={8}
+              value={person.password}
+              onChange={(e) => setPerson({ ...person, password: e.target.value })}
+            />
+          </Field>
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium text-slate-700">Roles</legend>
+            {roles.data?.map((r) => (
+              <label key={r.id} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={person.roleIds.includes(r.id)}
+                  onChange={(e) =>
+                    setPerson((p) => ({
+                      ...p,
+                      roleIds: e.target.checked ? [...p.roleIds, r.id] : p.roleIds.filter((x) => x !== r.id),
+                    }))
+                  }
+                />
+                {r.name}
+              </label>
+            ))}
+          </fieldset>
+          <div className="flex justify-end">
+            <Button type="submit" loading={saving} disabled={person.roleIds.length === 0}>
+              Add person
             </Button>
           </div>
         </form>

@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Newspaper,
   Settings,
   Users,
   Wallet,
@@ -29,6 +30,7 @@ interface NavItem {
 // Menu items show only when the user can actually use the page behind them.
 const NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, visible: () => true },
+  { href: "/feed", label: "Feed", icon: Newspaper, visible: () => true },
   { href: "/employees", label: "Employees", icon: Users, visible: ({ can }) => can("hrm.employee.read") },
   { href: "/attendance", label: "Attendance", icon: Clock, visible: ({ can }) => can("hrm.attendance.read") },
   { href: "/leave", label: "Leave", icon: CalendarDays, visible: ({ can }) => can("hrm.leave.read") },
@@ -38,7 +40,8 @@ const NAV: NavItem[] = [
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { me, loading, logout, can } = useAuth();
+  const { me, loading, logout, can, switchCompany } = useAuth();
+  const [switching, setSwitching] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -74,12 +77,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 
   const brand = (
-    <div className="flex h-16 items-center gap-2 px-6">
-      <div className="grid size-8 place-items-center rounded-lg bg-brand-600 text-sm font-bold text-white">Q</div>
-      <div className="leading-tight">
-        <p className="text-sm font-semibold text-slate-900">Quscer HRM</p>
-        <p className="max-w-40 truncate text-xs text-slate-500">{me.organization.name}</p>
+    <div className="px-6 pt-4">
+      <div className="flex h-10 items-center gap-2">
+        <div className="grid size-8 place-items-center rounded-lg bg-brand-600 text-sm font-bold text-white">Q</div>
+        <div className="leading-tight">
+          <p className="text-sm font-semibold text-slate-900">Quscer HRM</p>
+          {me.companies.length <= 1 && <p className="max-w-40 truncate text-xs text-slate-500">{me.organization.name}</p>}
+        </div>
       </div>
+      {me.companies.length > 1 && (
+        // Outsourced HR / several companies: pick which one you're working in.
+        <select
+          aria-label="Company"
+          value={me.organization.id}
+          disabled={switching}
+          onChange={async (e) => {
+            setSwitching(true);
+            try {
+              await switchCompany(e.target.value);
+              router.push("/");
+            } finally {
+              setSwitching(false);
+            }
+          }}
+          className="mt-3 block w-full rounded-lg border-0 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-900 ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-brand-600"
+        >
+          {me.companies.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      )}
     </div>
   );
 
@@ -90,7 +119,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </p>
       <p className="truncate text-xs text-slate-500">{me.roles.join(", ") || "No role"}</p>
       <Link href="/account" className="mt-3 flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900">
-        <KeyRound className="size-4" /> Change password
+        <KeyRound className="size-4" /> My account
       </Link>
       <button
         type="button"

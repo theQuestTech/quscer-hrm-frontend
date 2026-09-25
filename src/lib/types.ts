@@ -6,6 +6,8 @@ export type Money = number | string;
 export interface Me {
   user: { id: string; email: string; firstName: string; lastName: string };
   organization: { id: string; name: string; currency: string; timezone: string };
+  // Every company this login can open (more than one for e.g. outsourced HR).
+  companies: { id: string; name: string }[];
   roles: string[];
   permissions: string[];
   employee: {
@@ -72,6 +74,7 @@ export interface Employee {
   status: EmployeeStatus;
   employmentType: EmploymentType;
   dateOfJoining: string;
+  dateOfBirth: string | null;
   probationEndDate: string | null;
   confirmedAt: string | null;
   contractEndDate: string | null;
@@ -287,6 +290,7 @@ export interface AppUser {
   firstName: string;
   lastName: string;
   isActive: boolean;
+  hasOtherCompanies: boolean;
   roles: { id: string; name: string }[];
   employee: { id: string; firstName: string; lastName: string; employeeNumber: string } | null;
 }
@@ -301,6 +305,7 @@ export interface OrgSettings {
     weekendDays: number[];
     leaveApprovalSteps: number;
     lateGraceMinutes: number;
+    birthdayPostsEnabled: boolean;
   } | null;
 }
 
@@ -349,4 +354,38 @@ export interface FinalSettlement {
   };
   approvedAt: string | null;
   paidAt: string | null;
+}
+
+export type FeedPostKind = "POST" | "ANNOUNCEMENT" | "BIRTHDAY";
+export type Person = { id: string; firstName: string; lastName: string };
+
+export interface FeedPost {
+  id: string;
+  kind: FeedPostKind;
+  body: string;
+  isPinned: boolean;
+  createdAt: string;
+  author: Person | null;
+  subjectEmployee: Person | null;
+  imageIds: string[];
+  likeCount: number;
+  commentCount: number;
+  likedByMe: boolean;
+  canDelete: boolean;
+  canPin: boolean;
+}
+
+export interface FeedPage {
+  pinned: FeedPost[];
+  items: FeedPost[];
+  nextCursor: string | null;
+  canAnnounce: boolean;
+}
+
+export interface FeedComment {
+  id: string;
+  body: string;
+  createdAt: string;
+  author: Person;
+  canDelete: boolean;
 }

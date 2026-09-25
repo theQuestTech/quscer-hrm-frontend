@@ -17,6 +17,10 @@ interface AuthState {
   }) => Promise<void>;
   logout: () => void;
   refresh: () => Promise<void>;
+  // Open another company this login has access to.
+  switchCompany: (organizationId: string) => Promise<void>;
+  // Create a new company (you become its HR Admin) and open it.
+  addCompany: (organizationName: string) => Promise<void>;
   can: (permission: string) => boolean;
 }
 
@@ -67,6 +71,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [refresh],
   );
 
+  const switchCompany = useCallback(
+    async (organizationId: string) => {
+      const { accessToken } = await api<{ accessToken: string }>("POST", "/auth/switch-company", { organizationId });
+      setToken(accessToken);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const addCompany = useCallback(
+    async (organizationName: string) => {
+      const { accessToken } = await api<{ accessToken: string }>("POST", "/auth/companies", { organizationName });
+      setToken(accessToken);
+      await refresh();
+    },
+    [refresh],
+  );
+
   const value = useMemo<AuthState>(
     () => ({
       me,
@@ -75,9 +97,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signup,
       logout,
       refresh,
+      switchCompany,
+      addCompany,
       can: (permission) => !!me?.permissions.includes(permission),
     }),
-    [me, loading, login, signup, logout, refresh],
+    [me, loading, login, signup, logout, refresh, switchCompany, addCompany],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
