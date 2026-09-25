@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
-import { ArrowLeft, ChevronDown, ChevronRight, Download } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, Download, Landmark } from "lucide-react";
 import { api, downloadFile } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/use-api";
@@ -33,6 +33,7 @@ function PayrollRun() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [bankNotice, setBankNotice] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -63,6 +64,23 @@ function PayrollRun() {
       await run.reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function downloadBankFile(periodStart: string) {
+    setBusy("bank");
+    setError(null);
+    setBankNotice(null);
+    try {
+      const headers = await downloadFile(`/payroll-runs/${id}/bank-file`, `bank-file-${periodStart.slice(0, 7)}.csv`);
+      const missing = headers.get("X-Missing-Bank-Details");
+      if (missing) {
+        setBankNotice(`Not in the file because they have no bank details: ${missing.split(",").join(", ")}. Pay them separately or add their bank details and download again.`);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not download the bank file");
     } finally {
       setBusy(null);
     }
@@ -120,6 +138,11 @@ function PayrollRun() {
                 Approve payroll
               </Button>
             )}
+            {canDownload && can("hrm.payroll.approve") && (
+              <Button variant="secondary" onClick={() => downloadBankFile(r.periodStart)} loading={busy === "bank"}>
+                <Landmark className="size-4" /> Bank file
+              </Button>
+            )}
             {r.status === "APPROVED" && can("hrm.payroll.approve") && (
               <Button onClick={() => act("lock")} loading={busy === "lock"}>
                 Mark as paid
@@ -146,6 +169,7 @@ function PayrollRun() {
 
       <div className="space-y-6">
         {error && <Alert>{error}</Alert>}
+        {bankNotice && <Alert tone="info">{bankNotice}</Alert>}
         {r.status === "DRAFT" && warningLines.length > 0 && (
           <Alert tone="info">
             <p className="font-medium">Check these before sending for approval</p>

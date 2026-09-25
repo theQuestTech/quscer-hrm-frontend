@@ -13,9 +13,10 @@ open it in a new tab from a single button.
 | Employees | `hrm.employee.read` | Directory with search and filters, add/edit, profile with emergency contacts, documents, bank (masked), salary & loans, login access |
 | Attendance | `hrm.attendance.read` | Check in/out and monthly history; managers get the daily register to mark Present / Absent / Half day |
 | Leave | `hrm.leave.read` | Balances, request and cancel leave; approvers get Approvals and per-employee allocations |
-| Payroll | `hrm.payroll.read` | Create a monthly run, review each person's breakdown and exceptions, send for approval → approve → mark paid, download payslips |
+| Payroll | `hrm.payroll.read` | Create a monthly run, review each person's breakdown and exceptions, send for approval → approve → mark paid, download payslips and the bank payment file (CSV) |
 | My payslips | Anyone linked to an employee record | Approved payslips with PDF download |
-| Settings | `hrm.settings.write` | Company & weekend days, branches, departments, cost centres, shifts, holidays, leave types, users & roles |
+| Settings | `hrm.settings.write` | Company & weekend days, branches, departments, cost centres, shifts, holidays, leave types, users & roles (incl. resetting someone's password) |
+| My account | Everyone | Change your own password |
 
 Menu items only appear when the signed-in user has the permission for them.
 
@@ -49,5 +50,5 @@ The backend must be running and seeded (`npm run prisma:seed` in
 ## Not built yet
 
 - File upload for documents (paste a link for now)
-- Password reset (HR sets a starting password when giving access)
+- Emailed password-reset links (HR resets passwords from Settings → Users & roles)
 - Org chart view, timesheets, reports, onboarding/offboarding screens

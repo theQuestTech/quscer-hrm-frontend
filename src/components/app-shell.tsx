@@ -7,6 +7,7 @@ import {
   CalendarDays,
   Clock,
   FileText,
+  KeyRound,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -88,13 +89,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {me.user.firstName} {me.user.lastName}
       </p>
       <p className="truncate text-xs text-slate-500">{me.roles.join(", ") || "No role"}</p>
+      <Link href="/account" className="mt-3 flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900">
+        <KeyRound className="size-4" /> Change password
+      </Link>
       <button
         type="button"
         onClick={() => {
           logout();
           router.replace("/login");
         }}
-        className="mt-3 flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
+        className="mt-2 flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
       >
         <LogOut className="size-4" /> Sign out
       </button>
