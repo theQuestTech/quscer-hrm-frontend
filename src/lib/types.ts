@@ -309,19 +309,94 @@ export interface OrgSettings {
   } | null;
 }
 
+export type TodayStatus = "PRESENT" | "LATE" | "HALF_DAY" | "ABSENT" | "ON_LEAVE" | "OFF" | "NOT_IN";
+
+export interface TodayCounts {
+  total: number;
+  present: number;
+  late: number;
+  absent: number;
+  onLeave: number;
+  notIn: number;
+  off: number;
+  attendanceRate: number | null;
+}
+
+export interface TodayPerson {
+  id: string;
+  firstName: string;
+  lastName: string;
+  designation: string;
+  employeeNumber: string;
+  status: TodayStatus;
+  checkIn: string | null;
+}
+
+export interface UpcomingLeaveItem {
+  id: string;
+  employee: { id: string; firstName: string; lastName: string; designation: string; employeeNumber: string };
+  leaveType: string;
+  startDate: string;
+  endDate: string;
+  days: number;
+  status: LeaveStatus;
+}
+
+export interface ActivityItem {
+  kind: string;
+  text: string;
+  at: string;
+}
+
 export interface DashboardSummary {
   today: string;
   activeEmployees: number;
-  presentToday: number;
-  onLeaveToday: number;
-  pendingLeaveRequests: number;
+  activeEmployeesMonthAgo: number;
+  attendance: TodayCounts;
+  people: TodayPerson[];
+  upcomingLeave: UpcomingLeaveItem[];
+  pendingApprovals: { leave: number; corrections: number; settlements: number };
   expiringDocuments: {
     id: string;
     category: string;
     expiryDate: string;
     employee: { id: string; firstName: string; lastName: string };
   }[];
-  latestPayrollRun: { id: string; periodStart: string; periodEnd: string; status: PayrollStatus } | null;
+  latestPayrollRun: {
+    id: string;
+    periodStart: string;
+    periodEnd: string;
+    payDate: string;
+    status: PayrollStatus;
+    employeeCount: number;
+    totalNet: number;
+    currency: string | null;
+  } | null;
+  activity: ActivityItem[];
+}
+
+export interface TeamSummary {
+  today: string;
+  counts: TodayCounts;
+  people: TodayPerson[];
+  upcomingLeave: UpcomingLeaveItem[];
+  pendingApprovals: { leave: number; corrections: number };
+}
+
+export interface MySummary {
+  activity: ActivityItem[];
+  pendingRequests: { leave: number; corrections: number };
+}
+
+export interface CompanyCard {
+  id: string;
+  name: string;
+  activeEmployees: number;
+  presentToday: number;
+  onLeaveToday: number;
+  attendanceRate: number | null;
+  pendingApprovals: number;
+  latestPayrollRun: { status: PayrollStatus; periodStart: string } | null;
 }
 
 export type ExitReason = "RESIGNATION" | "TERMINATION" | "END_OF_CONTRACT" | "RETIREMENT" | "OTHER";

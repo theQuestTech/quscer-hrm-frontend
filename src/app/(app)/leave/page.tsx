@@ -30,6 +30,10 @@ import { RequirePermission } from "@/components/app-shell";
 
 type Tab = "mine" | "approvals" | "balances";
 
+function urlParam(key: string) {
+  return typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get(key);
+}
+
 export default function LeavePage() {
   return (
     <RequirePermission permission="hrm.leave.read">
@@ -68,7 +72,8 @@ function MyLeave() {
   const year = new Date().getFullYear();
   const balances = useApi<LeaveBalance[]>(`/leave-balances?year=${year}`);
   const requests = useApi<LeaveRequest[]>("/leave-requests");
-  const [open, setOpen] = useState(false);
+  // ?new=1 (the dashboard's "Apply for Leave") opens the form straight away.
+  const [open, setOpen] = useState(() => urlParam("new") === "1");
   const [error, setError] = useState<string | null>(null);
 
   async function cancel(id: string) {

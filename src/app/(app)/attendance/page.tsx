@@ -37,11 +37,21 @@ export default function AttendancePage() {
   );
 }
 
+// ?tab=register|corrections picks a tab and ?fix=1 opens "Fix my times"
+// (links from the dashboard). Read once on first render.
+function urlParam(key: string) {
+  return typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get(key);
+}
+
 function Attendance() {
   const { me, can } = useAuth();
   const canManage = can("hrm.attendance.approve");
   const hasEmployee = !!me?.employee;
-  const [tab, setTab] = useState<Tab>(hasEmployee ? "mine" : "register");
+  const [tab, setTab] = useState<Tab>(() => {
+    const wanted = urlParam("tab");
+    if (canManage && (wanted === "register" || wanted === "corrections")) return wanted;
+    return hasEmployee ? "mine" : "register";
+  });
 
   const tabs: { id: Tab; label: string }[] = [
     ...(hasEmployee ? [{ id: "mine" as Tab, label: "My attendance" }] : []),
@@ -74,7 +84,7 @@ function MyAttendance() {
   const { from, to } = monthRange(month);
   const history = useApi<AttendanceRecord[]>(`/attendance?from=${from}&to=${to}`);
   const corrections = useApi<AttendanceCorrection[]>("/attendance/corrections");
-  const [requesting, setRequesting] = useState(false);
+  const [requesting, setRequesting] = useState(() => urlParam("fix") === "1");
 
   return (
     <div className="space-y-6">
