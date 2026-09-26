@@ -33,8 +33,22 @@ export class ApiError extends Error {
   }
 }
 
+// A Quscer support "view as" lives only in its own browser tab
+// (sessionStorage), so it never replaces anyone's real sign-in.
+const VIEW_KEY = "quscer-hrm-view-token";
+
+function viewToken(): string | null {
+  try {
+    return window.sessionStorage.getItem(VIEW_KEY);
+  } catch {
+    return null;
+  }
+}
+
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
+  const view = viewToken();
+  if (view) return view;
   try {
     return window.localStorage.getItem(TOKEN_KEY);
   } catch {
@@ -44,10 +58,21 @@ export function getToken(): string | null {
 
 export function setToken(token: string | null) {
   try {
+    // Signing out of a support view only ends the view.
+    if (!token && viewToken()) return window.sessionStorage.removeItem(VIEW_KEY);
     if (token) window.localStorage.setItem(TOKEN_KEY, token);
     else window.localStorage.removeItem(TOKEN_KEY);
   } catch {
     // storage blocked (private mode etc.) — the session just won't persist
+  }
+}
+
+export function setViewToken(token: string | null) {
+  try {
+    if (token) window.sessionStorage.setItem(VIEW_KEY, token);
+    else window.sessionStorage.removeItem(VIEW_KEY);
+  } catch {
+    // storage blocked — the view can't open
   }
 }
 
@@ -58,7 +83,7 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
 }
 
 // NestJS errors look like { message: string | string[], error, statusCode }.
-function errorMessage(body: unknown, fallback: string): string {
+export function errorMessage(body: unknown, fallback: string): string {
   if (body && typeof body === "object" && "message" in body) {
     const message = (body as { message: unknown }).message;
     if (Array.isArray(message)) return message.join(". ");

@@ -20,6 +20,8 @@ export interface Me {
   companies: { id: string; name: string }[];
   roles: string[];
   permissions: string[];
+  // Set while Quscer support is looking at HRM as this person (read-only).
+  supportView?: { agentName: string; expiresAt: string } | null;
   employee: {
     id: string;
     employeeNumber: string;
