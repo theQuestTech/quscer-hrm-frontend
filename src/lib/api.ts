@@ -7,10 +7,15 @@ const TOKEN_KEY = "quscer-hrm-token";
 
 // For pages anyone can open without signing in (the careers page): no
 // token is sent, and a 401 never signs anyone out.
-export async function publicApi<T = unknown>(method: string, path: string, body?: FormData): Promise<T> {
+export async function publicApi<T = unknown>(method: string, path: string, body?: FormData | object): Promise<T> {
   let res: Response;
+  const isForm = typeof FormData !== "undefined" && body instanceof FormData;
   try {
-    res = await fetch(`${API_URL}${path}`, { method, body });
+    res = await fetch(`${API_URL}${path}`, {
+      method,
+      headers: body && !isForm ? { "Content-Type": "application/json" } : undefined,
+      body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
+    });
   } catch {
     throw new ApiError(0, "Can't reach the server. Check your connection and try again.");
   }
