@@ -46,6 +46,11 @@ export default function LoginPage() {
         <Field label="Password">
           <Input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         </Field>
+        <div className="-mt-1 text-right">
+          <Link href="/forgot-password" className="text-sm font-medium text-brand-600 hover:text-brand-700">
+            Forgot password?
+          </Link>
+        </div>
         <Button type="submit" loading={submitting} className="w-full py-2.5">
           Sign in
         </Button>
@@ -56,7 +61,6 @@ export default function LoginPage() {
           Create an account
         </Link>
       </p>
-      <p className="mt-2 text-center text-xs text-slate-400">Forgot your password? Ask your HR admin to reset it.</p>
     </>
   );
 }
