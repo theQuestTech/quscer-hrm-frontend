@@ -85,6 +85,7 @@ function CompanySettings() {
 }
 
 function CompanyForm({ settings, onSaved }: { settings: OrgSettings; onSaved: () => void }) {
+  const { refresh } = useAuth();
   const locale = settings.localeSettings;
   const [form, setForm] = useState({
     name: settings.name,
@@ -94,6 +95,9 @@ function CompanyForm({ settings, onSaved }: { settings: OrgSettings; onSaved: ()
     leaveApprovalSteps: locale?.leaveApprovalSteps ?? 1,
     lateGraceMinutes: locale?.lateGraceMinutes ?? 15,
     birthdayPostsEnabled: locale?.birthdayPostsEnabled ?? true,
+    enabledModules: locale?.enabledModules ?? ["performance", "training", "recruitment"],
+    kpiScoring: locale?.kpiScoring ?? "BOTH",
+    selfReviewEnabled: locale?.selfReviewEnabled ?? true,
   });
   const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -106,6 +110,7 @@ function CompanyForm({ settings, onSaved }: { settings: OrgSettings; onSaved: ()
       await api("PATCH", "/settings", form);
       setMessage({ tone: "success", text: "Saved" });
       onSaved();
+      await refresh(); // module switches change the menu
     } catch (err) {
       setMessage({ tone: "error", text: err instanceof Error ? err.message : "Could not save" });
     } finally {
@@ -184,6 +189,52 @@ function CompanyForm({ settings, onSaved }: { settings: OrgSettings; onSaved: ()
             <span className="block text-xs text-slate-500">Uses each employee&apos;s date of birth. Only the day is shown, never the age.</span>
           </span>
         </label>
+        <fieldset className="space-y-2 border-t border-gray-100 pt-5">
+          <legend className="mb-1 text-sm font-semibold text-[#1a1a2e]">Modules</legend>
+          <p className="text-xs text-gray-500">Turn off what your company doesn&apos;t use; it disappears from the menu.</p>
+          {[
+            ["performance", "Performance & KPIs"],
+            ["training", "Training (coming soon)"],
+            ["recruitment", "Recruitment (coming soon)"],
+          ].map(([id, label]) => (
+            <label key={id} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.enabledModules.includes(id)}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    enabledModules: e.target.checked ? [...form.enabledModules, id] : form.enabledModules.filter((m) => m !== id),
+                  })
+                }
+              />
+              {label}
+            </label>
+          ))}
+        </fieldset>
+        {form.enabledModules.includes("performance") && (
+          <div className="grid gap-4 border-t border-gray-100 pt-5 sm:grid-cols-2">
+            <Field label="How KPIs are scored" hint="Ratings: 1–5 stars. Targets: actual vs a number target.">
+              <Select value={form.kpiScoring} onChange={(e) => setForm({ ...form, kpiScoring: e.target.value as typeof form.kpiScoring })}>
+                <option value="BOTH">Both ratings and targets</option>
+                <option value="RATING">1–5 ratings only</option>
+                <option value="TARGET">Number targets only</option>
+              </Select>
+            </Field>
+            <label className="flex items-start gap-2 self-center text-sm">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={form.selfReviewEnabled}
+                onChange={(e) => setForm({ ...form, selfReviewEnabled: e.target.checked })}
+              />
+              <span>
+                Employees review themselves first
+                <span className="block text-xs text-gray-500">Turn off to go straight from goals to the manager&apos;s review.</span>
+              </span>
+            </label>
+          </div>
+        )}
         <Button type="submit" loading={saving}>
           Save changes
         </Button>

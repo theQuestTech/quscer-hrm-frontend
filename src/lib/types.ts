@@ -5,7 +5,15 @@ export type Money = number | string;
 
 export interface Me {
   user: { id: string; email: string; firstName: string; lastName: string };
-  organization: { id: string; name: string; currency: string; timezone: string };
+  organization: {
+    id: string;
+    name: string;
+    currency: string;
+    timezone: string;
+    // Optional modules this company uses ("performance", "training", "recruitment").
+    modules: string[];
+    kpiScoring: KpiScoring;
+  };
   // Every company this login can open (more than one for e.g. outsourced HR).
   companies: { id: string; name: string }[];
   roles: string[];
@@ -316,6 +324,9 @@ export interface OrgSettings {
     leaveApprovalSteps: number;
     lateGraceMinutes: number;
     birthdayPostsEnabled: boolean;
+    enabledModules: string[];
+    kpiScoring: KpiScoring;
+    selfReviewEnabled: boolean;
   } | null;
 }
 
@@ -487,4 +498,102 @@ export interface FeedComment {
   createdAt: string;
   author: Person;
   canDelete: boolean;
+}
+
+// --- Performance -------------------------------------------------------------
+
+export type KpiScoring = "RATING" | "TARGET" | "BOTH";
+export type KpiMeasure = "RATING" | "TARGET";
+export type ReviewStage = "GOALS" | "SELF" | "MANAGER" | "DONE";
+export type CycleStatus = "DRAFT" | "ACTIVE" | "CLOSED";
+
+export interface KpiTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  measure: KpiMeasure;
+  unit: string | null;
+  defaultTarget: number | null;
+  defaultWeight: number;
+  higherIsBetter: boolean;
+  auto: "ATTENDANCE" | null;
+  isActive: boolean;
+}
+
+export interface CycleSummary {
+  id: string;
+  name: string;
+  periodStart: string;
+  periodEnd: string;
+  status: CycleStatus;
+  reviewCount: number;
+  doneCount: number;
+  averageScore: number | null;
+  byStage: Record<ReviewStage, number>;
+}
+
+type ReviewPerson = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  designation: string;
+  employeeNumber: string;
+  photoUpdatedAt: string | null;
+};
+
+export interface CycleDetail extends CycleSummary {
+  reviews: {
+    id: string;
+    stage: ReviewStage;
+    finalScore: number | null;
+    band: string | null;
+    employee: ReviewPerson;
+    reviewer: { id: string; firstName: string; lastName: string } | null;
+  }[];
+}
+
+export interface ReviewListItem {
+  id: string;
+  stage: ReviewStage;
+  finalScore: number | null;
+  band: string | null;
+  acknowledgedAt: string | null;
+  cycle: { id: string; name: string; status: CycleStatus; periodStart: string; periodEnd: string };
+  employee: ReviewPerson;
+}
+
+export interface ReviewKpi {
+  id: string;
+  name: string;
+  measure: KpiMeasure;
+  unit: string | null;
+  target: number | null;
+  weight: number;
+  higherIsBetter: boolean;
+  auto: "ATTENDANCE" | null;
+  actual: number | null;
+  selfRating: number | null;
+  managerRating: number | null;
+  selfNote: string | null;
+  managerNote: string | null;
+  score: number | null;
+}
+
+export interface ReviewDetail {
+  id: string;
+  stage: ReviewStage;
+  cycle: { id: string; name: string; status: CycleStatus; periodStart: string; periodEnd: string };
+  employee: ReviewPerson;
+  reviewer: { id: string; firstName: string; lastName: string } | null;
+  selfComment: string | null;
+  managerComment: string | null;
+  finalScore: number | null;
+  band: string | null;
+  previewScore: number | null;
+  selfSubmittedAt: string | null;
+  completedAt: string | null;
+  acknowledgedAt: string | null;
+  kpis: ReviewKpi[];
+  settings: { scoring: KpiScoring; selfReview: boolean };
+  can: { setGoals: boolean; selfReview: boolean; managerReview: boolean; acknowledge: boolean };
 }

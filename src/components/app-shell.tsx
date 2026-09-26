@@ -22,7 +22,7 @@ interface NavItem {
   href: string;
   label: string;
   icon: IconName;
-  visible: (ctx: { can: (p: string) => boolean; hasEmployee: boolean }) => boolean;
+  visible: (ctx: { can: (p: string) => boolean; hasEmployee: boolean; modules: string[] }) => boolean;
 }
 
 const NAV: NavItem[] = [
@@ -33,6 +33,14 @@ const NAV: NavItem[] = [
   { href: "/attendance", label: "Attendance", icon: "clock", visible: ({ can }) => can("hrm.attendance.read") },
   { href: "/leave", label: "Leave", icon: "calendar", visible: ({ can }) => can("hrm.leave.read") },
   { href: "/payroll", label: "Payroll", icon: "pay", visible: ({ can }) => can("hrm.payroll.read") },
+  {
+    href: "/performance",
+    label: "Performance",
+    icon: "chart",
+    // Only when the company uses it, for people with reviews or who run them.
+    visible: ({ can, hasEmployee, modules }) =>
+      modules.includes("performance") && (hasEmployee || can("hrm.employee.write") || can("hrm.settings.write")),
+  },
   { href: "/payslips", label: "My Payslips", icon: "doc", visible: ({ hasEmployee }) => hasEmployee },
   { href: "/settings", label: "Settings", icon: "settings", visible: ({ can }) => can("hrm.settings.write") },
 ];
@@ -75,7 +83,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (loading || !me) return <Spinner />;
 
-  const items = NAV.filter((item) => item.visible({ can, hasEmployee: !!me.employee }));
+  const items = NAV.filter((item) =>
+    item.visible({ can, hasEmployee: !!me.employee, modules: me.organization.modules ?? [] }),
+  );
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   const sidebar = (
