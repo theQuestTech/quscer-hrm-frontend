@@ -534,6 +534,8 @@ function SetupHelp({
   const [busy, setBusy] = useState(false);
   const host = API_URL.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
   const https = API_URL.startsWith("https");
+  const info = useApi<{ plainHttp: { host: string; port: number } | null }>(device.kind === "ADMS" ? "/attendance-devices/connection-info" : null);
+  const plain = info.data?.plainHttp;
   return (
     <Modal open onClose={onClose} title={`Set up ${device.name}`} wide>
       <div className="space-y-4 text-sm text-slate-700">
@@ -561,9 +563,25 @@ function SetupHelp({
             <Alert tone="info">
               Serial number registered here: <strong>{device.serialNumber}</strong>. Machines with a different serial number are refused.
             </Alert>
-            <p className="text-xs text-slate-500">
-              Older machines without HTTPS support need a plain-HTTP address — tell us your model and we&apos;ll set that up.
-            </p>
+            <div className="rounded-lg border border-slate-200 p-3">
+              <p className="font-medium text-slate-900">Older machines (no HTTPS option)</p>
+              {plain ? (
+                <>
+                  <p className="mt-1">If the machine has no HTTPS switch, use this address instead, with HTTPS off:</p>
+                  <p className="mt-2 text-xs text-slate-500">Server address</p>
+                  <CopyText value={plain.host} />
+                  <p className="mt-2 text-xs text-slate-500">Server port</p>
+                  <CopyText value={String(plain.port)} />
+                  <p className="mt-2 text-xs text-slate-500">
+                    This address only accepts attendance machines — nothing else can log in or read data through it.
+                  </p>
+                </>
+              ) : (
+                <p className="mt-1 text-slate-500">
+                  {info.loading ? "Checking…" : "A plain-HTTP address for older machines isn\u2019t switched on yet. Ask your Quscer administrator to turn it on."}
+                </p>
+              )}
+            </div>
           </>
         ) : (
           <>
