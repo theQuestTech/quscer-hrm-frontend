@@ -728,3 +728,93 @@ export interface EmployeeOnboarding {
   canManage: boolean;
   tasks: OnboardingTask[];
 }
+
+// --- Training ------------------------------------------------------------------
+
+export type TrainingDelivery = "CLASSROOM" | "ONLINE" | "ON_THE_JOB";
+export type EnrolmentStatus = "ENROLLED" | "COMPLETED" | "NO_SHOW" | "CANCELLED";
+export type CertificateState = "NONE" | "VALID" | "EXPIRING" | "EXPIRED";
+export type TrainingRequestStatus = "PENDING" | "APPROVED" | "REJECTED" | "BOOKED";
+
+export interface TrainingCourse {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string | null;
+  provider: string | null;
+  delivery: TrainingDelivery;
+  durationHours: number | null;
+  costPerPerson?: number | null;
+  validityMonths: number | null;
+  isActive: boolean;
+}
+
+type CourseRef = Pick<TrainingCourse, "id" | "title" | "category" | "delivery" | "validityMonths" | "durationHours">;
+type SessionRef = { id: string; startsAt: string; endsAt: string; location: string | null; trainer: string | null; status: "PLANNED" | "DONE" | "CANCELLED" };
+type TraineeRef = { id: string; firstName: string; lastName: string; designation: string; photoUpdatedAt: string | null; departmentId: string | null; managerId: string | null };
+
+export interface TrainingSessionSummary extends SessionRef {
+  courseId: string;
+  capacity: number | null;
+  course: CourseRef;
+  enrolled: number;
+  completed: number;
+}
+
+export interface TrainingRecord {
+  id: string;
+  courseId: string;
+  sessionId: string | null;
+  employeeId: string;
+  status: EnrolmentStatus;
+  completedAt: string | null;
+  hours: number | null;
+  score: number | null;
+  certificateExpiresAt: string | null;
+  feedbackRating: number | null;
+  feedbackComment: string | null;
+  course: CourseRef;
+  session: SessionRef | null;
+  certificate?: CertificateState;
+  employee?: TraineeRef;
+}
+
+export interface TrainingSessionDetail extends SessionRef {
+  courseId: string;
+  capacity: number | null;
+  course: TrainingCourse;
+  seatsLeft: number | null;
+  enrolments: (TrainingRecord & { employee: TraineeRef })[];
+  waiting: (TrainingRequest & { employee: TraineeRef })[];
+}
+
+export interface TrainingOverview {
+  canGiveFeedback: boolean;
+  hoursThisYear: number;
+  completedCount: number;
+  upcoming: TrainingRecord[];
+  history: TrainingRecord[];
+  certificates: TrainingRecord[];
+}
+
+export interface TrainingRequest {
+  id: string;
+  employeeId: string;
+  courseId: string | null;
+  title: string;
+  reason: string;
+  status: TrainingRequestStatus;
+  decidedAt: string | null;
+  decisionNote: string | null;
+  createdAt: string;
+  course?: CourseRef | null;
+  employee?: TraineeRef;
+  canDecide?: boolean;
+}
+
+export interface TrainingReport {
+  year: number;
+  totals: { hours: number; cost: number; people: number; trained: number };
+  byDepartment: { department: string; people: number; hours: number; cost: number }[];
+  people: { employee: TraineeRef; hours: number; courses: number; noShows: number; cost: number }[];
+}

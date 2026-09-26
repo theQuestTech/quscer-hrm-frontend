@@ -29,7 +29,7 @@ export default function EmployeeProfilePage() {
 
 function Profile() {
   const { id } = useParams<{ id: string }>();
-  const { can } = useAuth();
+  const { can, me } = useAuth();
   const { data: employee, error, loading, reload } = useApi<EmployeeProfile>(`/employees/${id}`);
   const [tab, setTab] = useState<Tab>("overview");
   const [editing, setEditing] = useState(false);
@@ -61,6 +61,11 @@ function Profile() {
             <Link href={`/onboarding/${employee.id}`} className="text-sm font-medium text-[#00857a] hover:underline">
               Onboarding
             </Link>
+            {me?.organization.modules.includes("training") && (
+              <Link href={`/training/people/${employee.id}`} className="text-sm font-medium text-[#00857a] hover:underline">
+                Training
+              </Link>
+            )}
             <EmployeeStatusBadge status={employee.status} />
           </div>
         }

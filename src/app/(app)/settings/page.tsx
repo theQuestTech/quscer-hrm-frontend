@@ -197,7 +197,7 @@ function CompanyForm({ settings, onSaved }: { settings: OrgSettings; onSaved: ()
           <p className="text-xs text-gray-500">Turn off what your company doesn&apos;t use; it disappears from the menu.</p>
           {[
             ["performance", "Performance & KPIs"],
-            ["training", "Training (coming soon)"],
+            ["training", "Training"],
             ["recruitment", "Recruitment"],
           ].map(([id, label]) => (
             <label key={id} className="flex items-center gap-2 text-sm">

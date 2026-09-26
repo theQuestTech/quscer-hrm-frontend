@@ -50,6 +50,12 @@ const NAV: NavItem[] = [
       modules.includes("performance") && (hasEmployee || can("hrm.employee.write") || can("hrm.settings.write")),
   },
   {
+    href: "/training",
+    label: "Training",
+    icon: "book",
+    visible: ({ isHr, hasEmployee, modules }) => modules.includes("training") && (isHr || hasEmployee),
+  },
+  {
     href: "/recruitment",
     label: "Recruitment",
     icon: "briefcase",
