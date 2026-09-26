@@ -14,6 +14,8 @@ export interface Me {
     modules: string[];
     kpiScoring: KpiScoring;
   };
+  // Not HR, but interviewing / hiring for a job, or with joining tasks.
+  involvement: { recruiting: boolean; onboarding: boolean };
   // Every company this login can open (more than one for e.g. outsourced HR).
   companies: { id: string; name: string }[];
   roles: string[];
@@ -316,6 +318,7 @@ export interface AppUser {
 export interface OrgSettings {
   id: string;
   name: string;
+  careersSlug: string | null;
   localeSettings: {
     defaultCountryCode: string;
     defaultCurrency: string;
@@ -596,4 +599,132 @@ export interface ReviewDetail {
   kpis: ReviewKpi[];
   settings: { scoring: KpiScoring; selfReview: boolean };
   can: { setGoals: boolean; selfReview: boolean; managerReview: boolean; acknowledge: boolean };
+}
+
+// --- Recruitment ---------------------------------------------------------------
+
+export type JobStatus = "DRAFT" | "OPEN" | "CLOSED";
+export type ApplicationStage = "APPLIED" | "SCREENING" | "INTERVIEW" | "OFFER" | "HIRED" | "REJECTED";
+export type OfferStatus = "DRAFT" | "SENT" | "ACCEPTED" | "DECLINED";
+export type InterviewStatus = "SCHEDULED" | "DONE" | "CANCELLED";
+
+type PersonRef = { id: string; firstName: string; lastName: string; designation: string; photoUpdatedAt: string | null };
+
+export interface Job {
+  id: string;
+  title: string;
+  departmentId: string | null;
+  branchId: string | null;
+  employmentType: EmploymentType | null;
+  location: string | null;
+  description: string;
+  requirements: string | null;
+  salaryRange: string | null;
+  openings: number;
+  closesAt: string | null;
+  status: JobStatus;
+  hiringManagerEmployeeId: string | null;
+  createdAt: string;
+  department: string | null;
+  hiringManager: PersonRef | null;
+}
+
+export interface JobSummary extends Job {
+  byStage: Record<ApplicationStage, number>;
+  total: number;
+  hired: number;
+}
+
+export interface CandidateListItem {
+  id: string;
+  jobId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  city: string | null;
+  stage: ApplicationStage;
+  source: string;
+  createdAt: string;
+  cvFileName: string | null;
+  hiredEmployeeId: string | null;
+  averageRating: number | null;
+  job?: { id: string; title: string };
+}
+
+export interface JobDetail extends Job {
+  canManage: boolean;
+  careersSlug: string | null;
+  applications: CandidateListItem[];
+}
+
+export interface InterviewItem {
+  id: string;
+  applicationId: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  mode: "IN_PERSON" | "PHONE" | "VIDEO";
+  location: string | null;
+  interviewerEmployeeId: string | null;
+  interviewer: PersonRef | null;
+  status: InterviewStatus;
+  rating: number | null;
+  recommendation: "HIRE" | "MAYBE" | "NO_HIRE" | null;
+  feedback: string | null;
+  canGiveFeedback?: boolean;
+  application?: { id: string; firstName: string; lastName: string; job: { id: string; title: string } };
+}
+
+export interface CandidateDetail extends CandidateListItem {
+  currentCompany: string | null;
+  expectedSalary: number | null;
+  noticePeriodDays: number | null;
+  coverNote: string | null;
+  rejectReason: string | null;
+  notes: string | null;
+  cvMimeType: string | null;
+  job: { id: string; title: string; departmentId: string | null; branchId: string | null; employmentType: EmploymentType | null };
+  offer: { designation: string; salary: number; joiningDate: string; notes: string | null; status: OfferStatus; sentAt: string | null } | null;
+  interviews: InterviewItem[];
+  timeline: { id: string; eventType: string; createdAt: string; metadata: Record<string, unknown>; actor: { firstName: string; lastName: string } | null }[];
+  can: { manage: boolean; hire: boolean };
+}
+
+// --- Onboarding ----------------------------------------------------------------
+
+export type OnboardingAssignee = "HR" | "MANAGER" | "EMPLOYEE";
+
+export interface OnboardingTemplate {
+  id: string;
+  title: string;
+  description: string | null;
+  assignee: OnboardingAssignee;
+  dueDays: number;
+  isActive: boolean;
+}
+
+export interface OnboardingTask {
+  id: string;
+  employeeId: string;
+  title: string;
+  description: string | null;
+  assignee: OnboardingAssignee;
+  dueDate: string;
+  doneAt: string | null;
+  canTick?: boolean;
+  forMe?: boolean;
+  employee?: PersonRef & { dateOfJoining: string };
+}
+
+export interface OnboardingOverviewItem {
+  employee: PersonRef & { dateOfJoining: string; managerId: string | null };
+  total: number;
+  done: number;
+  overdue: number;
+}
+
+export interface EmployeeOnboarding {
+  employee: PersonRef & { dateOfJoining: string; managerId: string | null };
+  canManage: boolean;
+  tasks: OnboardingTask[];
 }

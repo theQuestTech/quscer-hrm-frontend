@@ -22,7 +22,13 @@ interface NavItem {
   href: string;
   label: string;
   icon: IconName;
-  visible: (ctx: { can: (p: string) => boolean; hasEmployee: boolean; modules: string[] }) => boolean;
+  visible: (ctx: {
+    can: (p: string) => boolean;
+    hasEmployee: boolean;
+    modules: string[];
+    isHr: boolean;
+    involvement: { recruiting: boolean; onboarding: boolean };
+  }) => boolean;
 }
 
 const NAV: NavItem[] = [
@@ -30,6 +36,8 @@ const NAV: NavItem[] = [
   { href: "/feed", label: "Feed", icon: "feed", visible: () => true },
   { href: "/profile", label: "My Profile", icon: "user", visible: ({ hasEmployee }) => hasEmployee },
   { href: "/employees", label: "Employees", icon: "users", visible: ({ can }) => can("hrm.employee.read") },
+  // HR, plus new joiners and their managers while they have joining tasks.
+  { href: "/onboarding", label: "Onboarding", icon: "check-circle", visible: ({ isHr, involvement }) => isHr || involvement.onboarding },
   { href: "/attendance", label: "Attendance", icon: "clock", visible: ({ can }) => can("hrm.attendance.read") },
   { href: "/leave", label: "Leave", icon: "calendar", visible: ({ can }) => can("hrm.leave.read") },
   { href: "/payroll", label: "Payroll", icon: "pay", visible: ({ can }) => can("hrm.payroll.read") },
@@ -40,6 +48,13 @@ const NAV: NavItem[] = [
     // Only when the company uses it, for people with reviews or who run them.
     visible: ({ can, hasEmployee, modules }) =>
       modules.includes("performance") && (hasEmployee || can("hrm.employee.write") || can("hrm.settings.write")),
+  },
+  {
+    href: "/recruitment",
+    label: "Recruitment",
+    icon: "briefcase",
+    // HR, plus hiring managers and interviewers.
+    visible: ({ isHr, involvement, modules }) => modules.includes("recruitment") && (isHr || involvement.recruiting),
   },
   { href: "/payslips", label: "My Payslips", icon: "doc", visible: ({ hasEmployee }) => hasEmployee },
   { href: "/settings", label: "Settings", icon: "settings", visible: ({ can }) => can("hrm.settings.write") },
@@ -84,7 +99,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (loading || !me) return <Spinner />;
 
   const items = NAV.filter((item) =>
-    item.visible({ can, hasEmployee: !!me.employee, modules: me.organization.modules ?? [] }),
+    item.visible({
+      can,
+      hasEmployee: !!me.employee,
+      modules: me.organization.modules ?? [],
+      isHr: can("hrm.employee.write") || can("hrm.settings.write"),
+      involvement: me.involvement ?? { recruiting: false, onboarding: false },
+    }),
   );
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 

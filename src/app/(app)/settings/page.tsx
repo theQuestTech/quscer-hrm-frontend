@@ -98,6 +98,7 @@ function CompanyForm({ settings, onSaved }: { settings: OrgSettings; onSaved: ()
     enabledModules: locale?.enabledModules ?? ["performance", "training", "recruitment"],
     kpiScoring: locale?.kpiScoring ?? "BOTH",
     selfReviewEnabled: locale?.selfReviewEnabled ?? true,
+    careersSlug: settings.careersSlug ?? "",
   });
   const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -107,7 +108,9 @@ function CompanyForm({ settings, onSaved }: { settings: OrgSettings; onSaved: ()
     setSaving(true);
     setMessage(null);
     try {
-      await api("PATCH", "/settings", form);
+      const { careersSlug, ...rest } = form;
+      // The address is picked from the company name the first time it's needed.
+      await api("PATCH", "/settings", careersSlug.trim() ? { ...rest, careersSlug: careersSlug.trim() } : rest);
       setMessage({ tone: "success", text: "Saved" });
       onSaved();
       await refresh(); // module switches change the menu
@@ -195,7 +198,7 @@ function CompanyForm({ settings, onSaved }: { settings: OrgSettings; onSaved: ()
           {[
             ["performance", "Performance & KPIs"],
             ["training", "Training (coming soon)"],
-            ["recruitment", "Recruitment (coming soon)"],
+            ["recruitment", "Recruitment"],
           ].map(([id, label]) => (
             <label key={id} className="flex items-center gap-2 text-sm">
               <input
@@ -233,6 +236,21 @@ function CompanyForm({ settings, onSaved }: { settings: OrgSettings; onSaved: ()
                 <span className="block text-xs text-gray-500">Turn off to go straight from goals to the manager&apos;s review.</span>
               </span>
             </label>
+          </div>
+        )}
+        {form.enabledModules.includes("recruitment") && (
+          <div className="border-t border-gray-100 pt-5">
+            <Field
+              label="Careers page address"
+              hint={`Your public jobs page: ${typeof window !== "undefined" ? window.location.origin : ""}/careers/${form.careersSlug || "…"}. Lowercase letters, numbers and dashes.`}
+            >
+              <Input
+                value={form.careersSlug}
+                placeholder="Picked from your company name"
+                pattern="[a-z0-9][a-z0-9-]{1,38}[a-z0-9]"
+                onChange={(e) => setForm({ ...form, careersSlug: e.target.value.toLowerCase() })}
+              />
+            </Field>
           </div>
         )}
         <Button type="submit" loading={saving}>
