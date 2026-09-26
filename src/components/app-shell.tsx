@@ -64,7 +64,11 @@ const NAV: NavItem[] = [
   },
   { href: "/payslips", label: "My Payslips", icon: "doc", visible: ({ hasEmployee }) => hasEmployee },
   { href: "/settings", label: "Settings", icon: "settings", visible: ({ can }) => can("hrm.settings.write") },
+  { href: "/help", label: "Get help", icon: "help", visible: () => true },
 ];
+
+// The page someone was on before opening "Get help", sent with their question.
+export const LAST_PAGE_KEY = "quscer-hrm-last-page";
 
 export function Logo({ small }: { small?: boolean }) {
   return (
@@ -101,6 +105,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [loading, me, router]);
 
   useEffect(() => setMenuOpen(false), [pathname]);
+
+  useEffect(() => {
+    if (pathname.startsWith("/help")) return;
+    try {
+      window.sessionStorage.setItem(LAST_PAGE_KEY, pathname);
+    } catch {
+      // storage blocked — the question just won't say which page
+    }
+  }, [pathname]);
 
   if (loading || !me) return <Spinner />;
 
@@ -168,6 +181,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col lg:pl-[200px]">
+        {me.supportView && <SupportViewBanner agentName={me.supportView.agentName} expiresAt={me.supportView.expiresAt} name={`${me.user.firstName} ${me.user.lastName}`} />}
         <header className="sticky top-0 z-30 flex h-[60px] flex-shrink-0 items-center gap-3 border-b border-gray-100 bg-white px-4 sm:px-6">
           <button
             type="button"
@@ -191,6 +205,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
         <main className="flex-1 p-4 sm:p-5">{children}</main>
       </div>
+    </div>
+  );
+}
+
+// Shown while Quscer support looks at HRM as this person. Everything is
+// read-only (the server refuses changes); "End view" closes it.
+function SupportViewBanner({ agentName, expiresAt, name }: { agentName: string; expiresAt: string; name: string }) {
+  const { logout } = useAuth();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const minutes = Math.max(0, Math.ceil((new Date(expiresAt).getTime() - now) / 60_000));
+  async function end() {
+    await api("POST", "/auth/end-support-view").catch(() => undefined);
+    logout();
+    window.close();
+  }
+  return (
+    <div role="status" className="flex flex-wrap items-center justify-between gap-2 bg-amber-400 px-4 py-2 text-sm font-medium text-[#10222a] sm:px-6">
+      <span>
+        Quscer support view ({agentName}) · you are seeing HRM as <strong>{name}</strong> · read-only · ends in {minutes} min
+      </span>
+      <button type="button" onClick={end} className="rounded-lg bg-[#10222a] px-3 py-1 text-xs font-semibold text-white">
+        End view
+      </button>
     </div>
   );
 }
