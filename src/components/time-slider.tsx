@@ -4,19 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatTime } from "@/lib/format";
-import type { AttendanceRecord } from "@/lib/types";
+import { type TodayResponse, checkInOut } from "@/lib/check-in";
 import { Icon } from "./figma-icons";
 
 // "Slide to time in" in the top bar. Drag the knob to the end (or focus it
 // and press Enter) to time in; then the same switch times you out. Only shown to
 // people with an employee profile. Other parts of the page (dashboard
 // calendar, attendance history) listen for "hrm:attendance-changed".
-
-interface TodayResponse {
-  employeeLinked: boolean;
-  date: string | null;
-  record: AttendanceRecord | null;
-}
 
 const KNOB = 32;
 const PAD = 4;
@@ -45,6 +39,22 @@ export function TimeSlider() {
   if (!me?.employee || !today?.employeeLinked) return null;
 
   const record = today.record;
+
+  // Machine-only people don't get the button — just today's machine times.
+  if (today.rules && !today.rules.canUseApp) {
+    return (
+      <div
+        className="flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 text-xs font-semibold text-gray-600"
+        title="Your attendance is recorded by the attendance machine"
+      >
+        <Icon name="clock" size={16} color="#6b7280" />
+        {record?.checkIn
+          ? `Machine · In ${formatTime(record.checkIn)}${record.checkOut ? ` · Out ${formatTime(record.checkOut)}` : ""}`
+          : "Use the attendance machine"}
+      </div>
+    );
+  }
+
   const mode: "in" | "out" | "done" = !record?.checkIn ? "in" : !record.checkOut ? "out" : "done";
   const max = () => (track.current ? track.current.clientWidth - KNOB - PAD * 2 : 0);
 
@@ -53,7 +63,7 @@ export function TimeSlider() {
     setBusy(true);
     setError(null);
     try {
-      await api("POST", `/attendance/${mode === "in" ? "check-in" : "check-out"}`);
+      await checkInOut(mode === "in" ? "check-in" : "check-out", today!.rules);
       await load();
       window.dispatchEvent(new Event("hrm:attendance-changed"));
     } catch (e) {

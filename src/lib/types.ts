@@ -106,6 +106,11 @@ export interface Employee {
   personalEmail: string | null;
   address: string | null;
   city: string | null;
+  // Attendance: number on the attendance machine; own check-in rules (null = company default)
+  machineUserId: string | null;
+  checkInMethod: "APP" | "MACHINE" | "BOTH" | null;
+  requireOfficeNetwork: boolean | null;
+  requireOfficeLocation: boolean | null;
   branch?: Branch | null;
   department?: Department | null;
   shift?: Shift | null;
@@ -160,6 +165,9 @@ export interface AttendanceRecord {
   earlyExitMinutes: number;
   overtimeMinutes: number;
   workedMinutes: number | null;
+  // Where an app check-in/out happened
+  checkInInfo?: { ip?: string; network?: string; place?: string; latitude?: number; longitude?: number } | null;
+  checkOutInfo?: { ip?: string; network?: string; place?: string; latitude?: number; longitude?: number } | null;
 }
 
 export type CorrectionStatus = "PENDING" | "APPROVED" | "REJECTED";
@@ -330,6 +338,10 @@ export interface OrgSettings {
     enabledModules: string[];
     kpiScoring: KpiScoring;
     selfReviewEnabled: boolean;
+    defaultCheckInMethod: "APP" | "MACHINE" | "BOTH";
+    defaultRequireOfficeNetwork: boolean;
+    defaultRequireOfficeLocation: boolean;
+    emailNotificationsEnabled: boolean;
   } | null;
 }
 
@@ -817,4 +829,52 @@ export interface TrainingReport {
   totals: { hours: number; cost: number; people: number; trained: number };
   byDepartment: { department: string; people: number; hours: number; cost: number }[];
   people: { employee: TraineeRef; hours: number; courses: number; noShows: number; cost: number }[];
+}
+
+// --- Attendance machines and check-in places -------------------------------------
+
+export type DeviceKind = "ADMS" | "API" | "IMPORT";
+
+export interface AttendanceDevice {
+  id: string;
+  name: string;
+  kind: DeviceKind;
+  serialNumber: string | null;
+  apiKeyHint: string | null;
+  branchId: string | null;
+  timezone: string | null;
+  isActive: boolean;
+  lastSeenAt: string | null;
+  lastPunchAt: string | null;
+  createdAt: string;
+  punchesLast24h: number;
+}
+
+export interface UnmatchedId {
+  machineUserId: string;
+  punches: number;
+  firstAt: string;
+  lastAt: string;
+}
+
+export interface OfficeNetwork {
+  id: string;
+  name: string;
+  cidr: string;
+}
+
+export interface OfficeLocation {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  radiusMeters: number;
+}
+
+export interface PunchResult {
+  received: number;
+  saved: number;
+  matched: number;
+  skipped: number;
+  unknownIds: string[];
 }

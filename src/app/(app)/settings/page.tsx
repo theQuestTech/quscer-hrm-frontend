@@ -10,8 +10,9 @@ import type { AppUser, Branch, CostCentre, Department, Holiday, LeaveType, OrgSe
 import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, Table, Tabs, Td, Th } from "@/components/ui";
 import { RequirePermission } from "@/components/app-shell";
 import { CrudList } from "./crud-list";
+import { AttendanceSettings } from "./attendance-settings";
 
-type Tab = "company" | "branches" | "departments" | "cost-centres" | "shifts" | "holidays" | "leave-types" | "users";
+type Tab = "company" | "branches" | "departments" | "cost-centres" | "shifts" | "holidays" | "leave-types" | "attendance" | "users";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "company", label: "Company" },
@@ -21,6 +22,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "shifts", label: "Shifts" },
   { id: "holidays", label: "Holidays" },
   { id: "leave-types", label: "Leave types" },
+  { id: "attendance", label: "Attendance & machines" },
   { id: "users", label: "Users & roles" },
 ];
 
@@ -62,6 +64,7 @@ function Settings() {
       {tab === "shifts" && <Shifts />}
       {tab === "holidays" && <Holidays />}
       {tab === "leave-types" && <LeaveTypes />}
+      {tab === "attendance" && <AttendanceSettings />}
       {tab === "users" && <Users />}
     </>
   );
@@ -99,6 +102,7 @@ function CompanyForm({ settings, onSaved }: { settings: OrgSettings; onSaved: ()
     kpiScoring: locale?.kpiScoring ?? "BOTH",
     selfReviewEnabled: locale?.selfReviewEnabled ?? true,
     careersSlug: settings.careersSlug ?? "",
+    emailNotificationsEnabled: locale?.emailNotificationsEnabled ?? true,
   });
   const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -190,6 +194,21 @@ function CompanyForm({ settings, onSaved }: { settings: OrgSettings; onSaved: ()
           <span>
             Post birthday wishes on the feed
             <span className="block text-xs text-slate-500">Uses each employee&apos;s date of birth. Only the day is shown, never the age.</span>
+          </span>
+        </label>
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={form.emailNotificationsEnabled}
+            onChange={(e) => setForm({ ...form, emailNotificationsEnabled: e.target.checked })}
+          />
+          <span>
+            Send email notifications
+            <span className="block text-xs text-slate-500">
+              Leave requests and decisions, payslips ready, training bookings, new job applications, welcome emails, and reminders for documents
+              and certificates expiring within 30 days.
+            </span>
           </span>
         </label>
         <fieldset className="space-y-2 border-t border-gray-100 pt-5">

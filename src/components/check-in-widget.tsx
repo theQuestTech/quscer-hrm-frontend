@@ -2,17 +2,10 @@
 
 import { useState } from "react";
 import { LogIn, LogOut } from "lucide-react";
-import { api } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
+import { type TodayResponse, checkInOut } from "@/lib/check-in";
 import { formatDate, formatTime } from "@/lib/format";
-import type { AttendanceRecord } from "@/lib/types";
 import { Alert, Button, Card } from "./ui";
-
-interface TodayResponse {
-  employeeLinked: boolean;
-  date: string | null;
-  record: AttendanceRecord | null;
-}
 
 export function CheckInWidget({ onChange }: { onChange?: () => void }) {
   const { data, loading, reload } = useApi<TodayResponse>("/attendance/today");
@@ -23,7 +16,7 @@ export function CheckInWidget({ onChange }: { onChange?: () => void }) {
     setBusy(true);
     setError(null);
     try {
-      await api("POST", `/attendance/${path}`);
+      await checkInOut(path, data?.rules ?? null);
       await reload();
       onChange?.();
     } catch (e) {
@@ -49,7 +42,9 @@ export function CheckInWidget({ onChange }: { onChange?: () => void }) {
             <dd className="mt-0.5 text-lg font-semibold">{formatTime(record?.checkOut)}</dd>
           </div>
         </dl>
-        {!record?.checkIn ? (
+        {data.rules && !data.rules.canUseApp ? (
+          <p className="text-sm text-slate-500">Recorded by the attendance machine</p>
+        ) : !record?.checkIn ? (
           <Button onClick={() => act("check-in")} loading={busy}>
             <LogIn className="size-4" /> Check in
           </Button>
