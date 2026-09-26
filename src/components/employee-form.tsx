@@ -37,6 +37,10 @@ function initialValues(e?: Employee): EmployeeFormValues {
     address: e?.address ?? "",
     city: e?.city ?? "",
     status: e?.status ?? "ACTIVE",
+    machineUserId: e?.machineUserId ?? "",
+    checkInMethod: e?.checkInMethod ?? "",
+    requireOfficeNetwork: e?.requireOfficeNetwork == null ? "" : e.requireOfficeNetwork ? "yes" : "no",
+    requireOfficeLocation: e?.requireOfficeLocation == null ? "" : e.requireOfficeLocation ? "yes" : "no",
   };
 }
 
@@ -44,7 +48,11 @@ function initialValues(e?: Employee): EmployeeFormValues {
 const CLEARABLE = [
   "probationEndDate", "contractEndDate", "dateOfBirth", "shiftId",
   "fatherName", "cnic", "gender", "maritalStatus", "bloodGroup", "personalEmail", "address", "city",
+  "machineUserId", "checkInMethod", "requireOfficeNetwork", "requireOfficeLocation",
 ];
+
+// Yes / No / "company default" (empty) — sent as true / false / null.
+const YES_NO = ["requireOfficeNetwork", "requireOfficeLocation"];
 
 // Shared by "Add employee" and the profile's edit form. Empty optional
 // fields are sent as undefined (create) so the backend keeps its defaults,
@@ -83,7 +91,7 @@ export function EmployeeForm({
         if (employee && CLEARABLE.includes(key)) payload[key] = null;
         continue;
       }
-      payload[key] = value;
+      payload[key] = YES_NO.includes(key) ? value === "yes" : value;
     }
     try {
       await onSubmit(payload);
@@ -254,6 +262,35 @@ export function EmployeeForm({
         </Field>
         <Field label="Home address" className="sm:col-span-2">
           <Input value={values.address} onChange={set("address")} maxLength={300} />
+        </Field>
+      </fieldset>
+
+      <fieldset className="grid gap-4 border-t border-slate-100 pt-6 sm:grid-cols-2 lg:grid-cols-4">
+        <legend className="mb-2 text-sm font-semibold text-[#1a1a2e]">Attendance</legend>
+        <Field label="Machine ID (optional)" hint="Their number on the attendance machine">
+          <Input value={values.machineUserId} onChange={set("machineUserId")} maxLength={40} placeholder="e.g. 12" />
+        </Field>
+        <Field label="How they record time">
+          <Select value={values.checkInMethod} onChange={set("checkInMethod")}>
+            <option value="">Company default</option>
+            <option value="BOTH">Machine or app button</option>
+            <option value="MACHINE">Attendance machine only</option>
+            <option value="APP">App button only</option>
+          </Select>
+        </Field>
+        <Field label="App button only on office network">
+          <Select value={values.requireOfficeNetwork} onChange={set("requireOfficeNetwork")}>
+            <option value="">Company default</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </Select>
+        </Field>
+        <Field label="App button only at office (GPS)">
+          <Select value={values.requireOfficeLocation} onChange={set("requireOfficeLocation")}>
+            <option value="">Company default</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </Select>
         </Field>
       </fieldset>
 

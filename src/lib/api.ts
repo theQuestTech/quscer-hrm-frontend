@@ -2,7 +2,7 @@
 // localStorage — this app is standalone until it's connected to Quscer OS
 // (WBS 6.1), at which point sign-in moves to the shared Quscer session.
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4100").replace(/\/$/, "");
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4100").replace(/\/$/, "");
 const TOKEN_KEY = "quscer-hrm-token";
 
 // For pages anyone can open without signing in (the careers page): no

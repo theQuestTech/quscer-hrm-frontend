@@ -76,3 +76,15 @@ export function AttendanceStatusBadge({ status }: { status: AttendanceStatus }) 
 export function PayrollStatusBadge({ status }: { status: PayrollStatus }) {
   return <Badge tone={payrollTones[status]}>{humanize(status)}</Badge>;
 }
+
+// How a check-in was recorded: "Machine", "App · Lahore office", "App · office Wi-Fi".
+export function howRecorded(r: {
+  source: "MANUAL" | "APP_CHECKIN" | "BIOMETRIC";
+  checkInInfo?: { network?: string; place?: string } | null;
+} | null | undefined): string {
+  if (!r) return "";
+  if (r.source === "BIOMETRIC") return "Machine";
+  if (r.source === "MANUAL") return "Marked by HR";
+  const where = r.checkInInfo?.place ?? (r.checkInInfo?.network ? "office network" : null);
+  return where ? `App · ${where}` : "App";
+}

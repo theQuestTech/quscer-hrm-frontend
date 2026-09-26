@@ -23,7 +23,7 @@ import {
   Textarea,
   Th,
 } from "@/components/ui";
-import { AttendanceStatusBadge, CorrectionStatusBadge } from "@/components/status-badges";
+import { AttendanceStatusBadge, CorrectionStatusBadge, howRecorded } from "@/components/status-badges";
 import { CheckInWidget } from "@/components/check-in-widget";
 import { RequirePermission } from "@/components/app-shell";
 
@@ -127,7 +127,10 @@ function MyAttendance() {
               {history.data.map((r) => (
                 <tr key={r.id}>
                   <Td>{formatDate(r.date)}</Td>
-                  <Td>{formatTime(r.checkIn)}</Td>
+                  <Td>
+                    {formatTime(r.checkIn)}
+                    {r.checkIn && <p className="text-xs text-slate-400">{howRecorded(r)}</p>}
+                  </Td>
                   <Td>{formatTime(r.checkOut)}</Td>
                   <Td>{formatMinutes(r.workedMinutes)}</Td>
                   <Td className={r.lateMinutes ? "text-amber-700" : undefined}>{formatMinutes(r.lateMinutes)}</Td>
@@ -400,7 +403,10 @@ function Register() {
                   </p>
                   <p className="text-xs text-slate-500">{employee.designation}</p>
                 </Td>
-                <Td>{formatTime(record?.checkIn)}</Td>
+                <Td>
+                  {formatTime(record?.checkIn)}
+                  {record?.checkIn && <p className="text-xs text-slate-400">{howRecorded(record)}</p>}
+                </Td>
                 <Td>{formatTime(record?.checkOut)}</Td>
                 <Td className={record?.lateMinutes ? "text-amber-700" : undefined}>{formatMinutes(record?.lateMinutes)}</Td>
                 <Td>{formatMinutes(record?.overtimeMinutes)}</Td>
