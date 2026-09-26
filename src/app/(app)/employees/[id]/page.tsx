@@ -56,7 +56,14 @@ function Profile() {
       <PageHeader
         title={fullName(employee)}
         description={`${employee.designation} · ${employee.employeeNumber}`}
-        actions={<EmployeeStatusBadge status={employee.status} />}
+        actions={
+          <div className="flex items-center gap-3">
+            <Link href={`/onboarding/${employee.id}`} className="text-sm font-medium text-[#00857a] hover:underline">
+              Onboarding
+            </Link>
+            <EmployeeStatusBadge status={employee.status} />
+          </div>
+        }
       />
       <div className="mb-6">
         <PhotoEditor

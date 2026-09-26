@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { api, getToken, setToken, setUnauthorizedHandler } from "./api";
+import { ApiError, api, getToken, setToken, setUnauthorizedHandler } from "./api";
 import type { Me } from "./types";
 
 interface AuthState {
@@ -42,8 +42,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     try {
       setMe(await api<Me>("GET", "/auth/me"));
-    } catch {
-      logout();
+    } catch (e) {
+      // Only a rejected sign-in ends the session. A dropped connection — or
+      // a request cut off because the user moved to another page — keeps it.
+      if (e instanceof ApiError && (e.status === 401 || e.status === 403)) logout();
     }
   }, [logout]);
 

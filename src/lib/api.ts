@@ -5,6 +5,20 @@
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4100").replace(/\/$/, "");
 const TOKEN_KEY = "quscer-hrm-token";
 
+// For pages anyone can open without signing in (the careers page): no
+// token is sent, and a 401 never signs anyone out.
+export async function publicApi<T = unknown>(method: string, path: string, body?: FormData): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, { method, body });
+  } catch {
+    throw new ApiError(0, "Can't reach the server. Check your connection and try again.");
+  }
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new ApiError(res.status, errorMessage(data, `Request failed (${res.status})`));
+  return data as T;
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,
