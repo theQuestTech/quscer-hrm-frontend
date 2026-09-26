@@ -31,9 +31,11 @@ export default function SignupPage() {
 
   return (
     <>
-      <h1 className="text-xl font-semibold text-slate-900">Create your company account</h1>
-      <p className="mt-1 text-sm text-slate-500">You&apos;ll be the HR admin. You can add your team afterwards.</p>
-      <form onSubmit={onSubmit} className="mt-6 space-y-4">
+      <h1 className="text-2xl font-bold text-[#1a1a2e]" style={{ fontFamily: "var(--font-display)" }}>
+        Set up your company
+      </h1>
+      <p className="mt-1 text-sm text-gray-500">You&apos;ll be the HR admin. You can add your team afterwards — it takes a few minutes.</p>
+      <form onSubmit={onSubmit} className="mt-8 space-y-4">
         {error && <Alert>{error}</Alert>}
         <Field label="Company name">
           <Input required minLength={2} value={form.organizationName} onChange={set("organizationName")} />
@@ -52,13 +54,13 @@ export default function SignupPage() {
         <Field label="Password" hint="At least 8 characters">
           <Input type="password" required minLength={8} autoComplete="new-password" value={form.password} onChange={set("password")} />
         </Field>
-        <Button type="submit" loading={submitting} className="w-full">
+        <Button type="submit" loading={submitting} className="w-full py-2.5">
           Create account
         </Button>
       </form>
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-8 border-t border-gray-100 pt-6 text-center text-sm text-gray-500">
         Already have an account?{" "}
-        <Link href="/login" className="font-medium text-brand-600 hover:text-brand-700">
+        <Link href="/login" className="font-semibold text-brand-600 hover:text-brand-700">
           Sign in
         </Link>
       </p>
