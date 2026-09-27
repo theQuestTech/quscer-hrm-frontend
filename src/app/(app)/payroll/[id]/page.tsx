@@ -7,7 +7,7 @@ import { ArrowLeft, ChevronDown, ChevronRight, Download, Landmark } from "lucide
 import { api, downloadFile } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/use-api";
-import { formatDate, formatMonth, formatMoney, fullName } from "@/lib/format";
+import { countryName, formatDate, formatMonth, formatMoney, fullName, regionName } from "@/lib/format";
 import type { BreakdownLine, Employee, Paginated, PayrollRunDetail, PayrollWarnings } from "@/lib/types";
 import { Alert, Button, Card, PageHeader, Spinner, Stat, Table, Td, Th } from "@/components/ui";
 import { RequirePermission } from "@/components/app-shell";
@@ -104,11 +104,28 @@ function PayrollRun() {
   const warningLines: { label: string; ids: string[]; hint: string }[] = warnings
     ? [
         { label: "Skipped: no salary set", ids: warnings.skippedNoSalaryStructure, hint: "Set their salary on their profile, then recalculate." },
-        { label: "Skipped: no province/country", ids: warnings.skippedNoJurisdiction, hint: "Give them a branch (or a province) so tax can be worked out." },
+        { label: "Skipped: no country", ids: warnings.skippedNoJurisdiction, hint: "Give them a branch, or set their country on their profile, then recalculate." },
+        ...(warnings.noPayrollRules ?? []).map((c) => ({
+          label: `No payroll rules for ${countryName(c.countryCode)}`,
+          ids: c.employeeIds,
+          hint: "Quscer People doesn't have tax rules for this country yet, so no tax or contributions were worked out. Add them as deductions on their salary.",
+        })),
+        {
+          label: "Province missing",
+          ids: warnings.missingRegion ?? [],
+          hint: "Income tax was worked out, but not EOBI or social security. Choose their province on their profile, then recalculate.",
+        },
         { label: "Skipped: joins after this month", ids: warnings.skippedNotYetJoined ?? [], hint: "Nothing to pay yet." },
         { label: "Net pay below zero", ids: warnings.negativeNetPay, hint: "Deductions are bigger than pay — check loans and unpaid days." },
       ].filter((w) => w.ids.length > 0)
     : [];
+  // Things that are right as they are, shown so nobody wonders.
+  const RULE_NAME = { INCOME_TAX: "income tax", PENSION_FUND: "EOBI / pension fund", SOCIAL_SECURITY: "social security scheme" } as const;
+  const noteLines = (warnings?.notCovered ?? []).map((n) => ({
+    label: `No ${RULE_NAME[n.ruleType]} in ${regionName(n.regionCode)}`,
+    ids: n.employeeIds,
+    hint: n.ruleType === "SOCIAL_SECURITY" ? "Nothing to charge there — just so you know." : "Nothing was charged for it — check this is right.",
+  }));
 
   return (
     <>
@@ -173,23 +190,14 @@ function PayrollRun() {
         {r.status === "DRAFT" && warningLines.length > 0 && (
           <Alert tone="info">
             <p className="font-medium">Check these before sending for approval</p>
-            <ul className="mt-2 space-y-1">
-              {warningLines.map((w) => (
-                <li key={w.label}>
-                  <span className="font-medium">{w.label}:</span>{" "}
-                  {w.ids.map((eid, i) => (
-                    <Fragment key={eid}>
-                      {i > 0 && ", "}
-                      <Link href={`/employees/${eid}`} className="underline">
-                        {nameOf(eid)}
-                      </Link>
-                    </Fragment>
-                  ))}
-                  <span className="text-slate-600"> — {w.hint}</span>
-                </li>
-              ))}
-            </ul>
+            <WarningList lines={warningLines} nameOf={nameOf} />
           </Alert>
+        )}
+        {r.status === "DRAFT" && noteLines.length > 0 && (
+          <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700 ring-1 ring-slate-200">
+            <p className="font-medium">Good to know</p>
+            <WarningList lines={noteLines} nameOf={nameOf} />
+          </div>
         )}
 
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -291,5 +299,26 @@ function Breakdown({ lines, currency }: { lines: BreakdownLine[]; currency: stri
       <List title="Deductions" items={deductions} negative />
       <List title="Paid by company (not deducted)" items={employer} />
     </div>
+  );
+}
+
+function WarningList({ lines, nameOf }: { lines: { label: string; ids: string[]; hint: string }[]; nameOf: (id: string) => string }) {
+  return (
+    <ul className="mt-2 space-y-1">
+      {lines.map((w) => (
+        <li key={w.label}>
+          <span className="font-medium">{w.label}:</span>{" "}
+          {w.ids.map((eid, i) => (
+            <Fragment key={eid}>
+              {i > 0 && ", "}
+              <Link href={`/employees/${eid}`} className="underline">
+                {nameOf(eid)}
+              </Link>
+            </Fragment>
+          ))}
+          <span className="text-slate-600"> — {w.hint}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
