@@ -94,6 +94,19 @@ export const PK_REGIONS = [
   { code: "ICT", name: "Islamabad Capital Territory" },
 ];
 
+export function regionName(code: string): string {
+  return PK_REGIONS.find((r) => r.code === code)?.name ?? code;
+}
+
+// "AE" → "United Arab Emirates".
+export function countryName(code: string): string {
+  try {
+    return new Intl.DisplayNames(["en"], { type: "region" }).of(code.toUpperCase()) ?? code;
+  } catch {
+    return code;
+  }
+}
+
 export function initials(p: { firstName: string; lastName: string }): string {
   return `${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}`.toUpperCase();
 }

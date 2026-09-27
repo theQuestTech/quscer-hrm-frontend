@@ -294,6 +294,10 @@ export interface PayrollWarnings {
   skippedNoJurisdiction: string[];
   skippedNotYetJoined: string[];
   negativeNetPay: string[];
+  // Worked out only in part (older saved warnings may not have these).
+  missingRegion?: string[];
+  noPayrollRules?: { countryCode: string; employeeIds: string[] }[];
+  notCovered?: { ruleType: "INCOME_TAX" | "PENSION_FUND" | "SOCIAL_SECURITY"; regionCode: string; employeeIds: string[] }[];
 }
 
 export interface MyPayslip {
