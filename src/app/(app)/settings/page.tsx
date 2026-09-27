@@ -11,8 +11,9 @@ import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Sp
 import { RequirePermission } from "@/components/app-shell";
 import { CrudList } from "./crud-list";
 import { AttendanceSettings } from "./attendance-settings";
+import { ActivityHistory } from "./activity-history";
 
-type Tab = "company" | "branches" | "departments" | "cost-centres" | "shifts" | "holidays" | "leave-types" | "attendance" | "users";
+type Tab = "company" | "branches" | "departments" | "cost-centres" | "shifts" | "holidays" | "leave-types" | "attendance" | "users" | "activity";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "company", label: "Company" },
@@ -24,6 +25,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "leave-types", label: "Leave types" },
   { id: "attendance", label: "Attendance & machines" },
   { id: "users", label: "Users & roles" },
+  { id: "activity", label: "Activity history" },
 ];
 
 export default function SettingsPage() {
@@ -38,7 +40,8 @@ export default function SettingsPage() {
 
 function Settings() {
   const params = useSearchParams();
-  const [tab, setTab] = useState<Tab>("company");
+  // ?tab=activity (etc.) opens that tab, for links from elsewhere.
+  const [tab, setTab] = useState<Tab>(() => TABS.find((t) => t.id === params.get("tab"))?.id ?? "company");
   const welcome = params.get("welcome") === "1";
 
   return (
@@ -66,6 +69,7 @@ function Settings() {
       {tab === "leave-types" && <LeaveTypes />}
       {tab === "attendance" && <AttendanceSettings />}
       {tab === "users" && <Users />}
+      {tab === "activity" && <ActivityHistory />}
     </>
   );
 }
