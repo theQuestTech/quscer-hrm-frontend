@@ -5,7 +5,7 @@ import { Suspense, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/use-api";
-import { PK_REGIONS, WEEKDAYS, formatDate } from "@/lib/format";
+import { WEEKDAYS, formatDate, regionName, regionsFor } from "@/lib/format";
 import type { AppUser, Branch, CostCentre, Department, Holiday, LeaveType, OrgSettings, Role, Shift } from "@/lib/types";
 import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, Table, Tabs, Td, Th } from "@/components/ui";
 import { RequirePermission } from "@/components/app-shell";
@@ -50,7 +50,7 @@ function Settings() {
             <p className="font-medium">Welcome! Three quick steps to get going:</p>
             <ol className="mt-1 list-decimal space-y-0.5 pl-5">
               <li>Check your company details and weekend days below.</li>
-              <li>Add at least one branch — it sets the province used for tax and social security.</li>
+              <li>Add at least one branch, with its province / state — it decides the tax and social security rules for everyone in it.</li>
               <li>Add your employees under Employees, then set their salaries.</li>
             </ol>
           </Alert>
@@ -286,17 +286,23 @@ function Branches() {
       title="Branches"
       itemName="branch"
       path="/branches"
-      description="Each branch's province decides which social security scheme and minimum wage apply to the people in it."
+      description="Each branch's country and province / state decide which tax, social security and minimum-wage rules apply to the people in it. Set it once here — employees take it from their branch unless their profile says otherwise."
       fields={[
         { key: "name", label: "Name", required: true, placeholder: "Lahore Head Office" },
         { key: "countryCode", label: "Country code", required: true, defaultValue: "PK", hint: "2 letters, e.g. PK" },
-        { key: "regionCode", label: "Province", type: "select", options: PK_REGIONS.map((r) => ({ value: r.code, label: r.name })) },
+        {
+          key: "regionCode",
+          label: "Province / state",
+          type: "select",
+          optionsFor: (v) => regionsFor(String(v.countryCode ?? ""))?.map((r) => ({ value: r.code, label: r.name })) ?? null,
+          hint: "Needed where tax or social security differs by province / state.",
+        },
         { key: "timezone", label: "Timezone", required: true, defaultValue: "Asia/Karachi" },
         { key: "isActive", label: "Active", type: "checkbox", defaultValue: true },
       ]}
       columns={[
         { label: "Name", render: (b) => <span className="font-medium text-slate-900">{b.name}</span> },
-        { label: "Province", render: (b) => PK_REGIONS.find((r) => r.code === b.regionCode)?.name ?? b.regionCode ?? "—" },
+        { label: "Province / state", render: (b) => (b.regionCode ? regionName(b.regionCode) : "—") },
         { label: "Employees", render: (b) => b._count?.employees ?? 0 },
         { label: "Status", render: (b) => (b.isActive ? <Badge tone="green">Active</Badge> : <Badge>Inactive</Badge>) },
       ]}

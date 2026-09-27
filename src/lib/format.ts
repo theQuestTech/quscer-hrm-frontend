@@ -98,6 +98,27 @@ export function regionName(code: string): string {
   return PK_REGIONS.find((r) => r.code === code)?.name ?? code;
 }
 
+// The provinces/states HRM has payroll rules for, by country. A country not
+// listed here has no regional list yet: its province/state is typed as a code.
+export function regionsFor(countryCode: string | null | undefined): { code: string; name: string }[] | null {
+  return (countryCode ?? "").toUpperCase() === "PK" ? PK_REGIONS : null;
+}
+
+// Where someone's tax is worked out: their own country and province/state,
+// else their branch's (the same rule payroll uses).
+export function jurisdictionOf(e: {
+  countryCode: string | null;
+  regionCode: string | null;
+  branch?: { countryCode: string; regionCode: string | null } | null;
+}): { countryCode: string | null; regionCode: string | null; fromBranch: boolean } {
+  if (e.countryCode) {
+    const useBranch = !e.regionCode && e.branch?.countryCode === e.countryCode && !!e.branch.regionCode;
+    return { countryCode: e.countryCode, regionCode: e.regionCode ?? (useBranch ? e.branch!.regionCode : null), fromBranch: useBranch };
+  }
+  if (e.branch) return { countryCode: e.branch.countryCode, regionCode: e.branch.regionCode, fromBranch: true };
+  return { countryCode: null, regionCode: null, fromBranch: false };
+}
+
 // "AE" → "United Arab Emirates".
 export function countryName(code: string): string {
   try {

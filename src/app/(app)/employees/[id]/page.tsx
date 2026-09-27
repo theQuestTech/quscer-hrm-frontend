@@ -7,7 +7,7 @@ import { ArrowLeft, Pencil } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/use-api";
-import { formatDate, fullName, humanize } from "@/lib/format";
+import { countryName, formatDate, fullName, humanize, jurisdictionOf, regionName } from "@/lib/format";
 import type { EmployeeProfile } from "@/lib/types";
 import { Alert, Button, Card, PageHeader, Spinner, Tabs } from "@/components/ui";
 import { EmployeeStatusBadge } from "@/components/status-badges";
@@ -131,7 +131,7 @@ function Profile() {
                 <Detail label="Blood group" value={employee.bloodGroup} />
                 <Detail label="Personal email" value={employee.personalEmail} />
                 <Detail label="Address" value={[employee.address, employee.city].filter(Boolean).join(", ")} />
-                <Detail label="Tax jurisdiction" value={[employee.countryCode, employee.regionCode].filter(Boolean).join(" / ") || "Not set — payroll will skip this employee"} />
+                <Detail label="Tax country / province or state" value={taxPlace(employee)} />
               </dl>
             </Card>
             <Card title="Reporting line">
@@ -184,4 +184,12 @@ function Detail({ label, value }: { label: string; value: string | null | undefi
       <dd className="mt-0.5 font-medium text-slate-900">{value || "—"}</dd>
     </div>
   );
+}
+
+// e.g. "Pakistan / Punjab (from branch)".
+function taxPlace(e: EmployeeProfile): string {
+  const j = jurisdictionOf(e);
+  if (!j.countryCode) return "Not set — payroll will skip this person";
+  const place = [countryName(j.countryCode), j.regionCode ? regionName(j.regionCode) : "province / state not set"].join(" / ");
+  return j.fromBranch ? `${place} (from branch)` : place;
 }

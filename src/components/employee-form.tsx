@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useApi } from "@/lib/use-api";
-import { PK_REGIONS, humanize, todayInput, toDateInput } from "@/lib/format";
+import { humanize, regionName, regionsFor, todayInput, toDateInput } from "@/lib/format";
 import type { Branch, Department, Employee, EmploymentType, Paginated, Shift } from "@/lib/types";
 import { Alert, Button, Field, Input, Select } from "./ui";
 
@@ -75,6 +75,12 @@ export function EmployeeForm({
   const departments = useApi<Department[]>("/departments");
   const shifts = useApi<Shift[]>("/shifts");
   const managers = useApi<Paginated<Employee>>("/employees?pageSize=100&status=ACTIVE");
+
+  // Province / state options follow the country: the person's own, else their branch's.
+  const branch = branches.data?.find((b) => b.id === values.branchId);
+  const country = employee?.countryCode ?? branch?.countryCode ?? null;
+  const regions = regionsFor(country);
+  const branchRegion = branch && (!country || branch.countryCode === country) && branch.regionCode ? regionName(branch.regionCode) : null;
 
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setValues((v) => ({ ...v, [key]: e.target.value }));
@@ -207,15 +213,22 @@ export function EmployeeForm({
               ))}
           </Select>
         </Field>
-        <Field label="Province (for tax & social security)" hint="Leave blank to use the branch's province">
-          <Select value={values.regionCode} onChange={set("regionCode")}>
-            <option value="">From branch</option>
-            {PK_REGIONS.map((r) => (
-              <option key={r.code} value={r.code}>
-                {r.name}
-              </option>
-            ))}
-          </Select>
+        <Field
+          label="Province / state (for tax & social security)"
+          hint="Leave as the branch's unless this person is registered somewhere else."
+        >
+          {regions ? (
+            <Select value={values.regionCode} onChange={set("regionCode")}>
+              <option value="">{branchRegion ? `From branch (${branchRegion})` : "From branch"}</option>
+              {regions.map((r) => (
+                <option key={r.code} value={r.code}>
+                  {r.name}
+                </option>
+              ))}
+            </Select>
+          ) : (
+            <Input value={values.regionCode} onChange={set("regionCode")} placeholder={branchRegion ? `From branch (${branchRegion})` : "From branch"} maxLength={10} />
+          )}
         </Field>
       </div>
 

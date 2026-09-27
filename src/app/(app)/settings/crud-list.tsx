@@ -14,6 +14,9 @@ export interface CrudField {
   label: string;
   type?: "text" | "time" | "date" | "number" | "select" | "checkbox";
   options?: { value: string; label: string }[];
+  // Options that depend on what's typed in the other fields. Returning null
+  // shows a plain text box instead of a list.
+  optionsFor?: (values: Record<string, unknown>) => { value: string; label: string }[] | null;
   required?: boolean;
   hint?: string;
   placeholder?: string;
@@ -155,18 +158,20 @@ export function CrudList<T extends Row>({
       <Modal open={editing !== null} onClose={() => setEditing(null)} title={editing === "new" ? `Add ${itemName}` : `Edit ${itemName}`}>
         <form onSubmit={save} className="space-y-4">
           {error && <Alert>{error}</Alert>}
-          {fields.map((f) =>
-            f.type === "checkbox" ? (
+          {fields.map((f) => {
+            const options = f.optionsFor ? f.optionsFor(values) : f.options;
+            const asList = f.type === "select" && options !== null;
+            return f.type === "checkbox" ? (
               <label key={f.key} className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={Boolean(values[f.key])} onChange={(e) => setValues({ ...values, [f.key]: e.target.checked })} />
                 {f.label}
               </label>
             ) : (
               <Field key={f.key} label={f.label} hint={f.hint}>
-                {f.type === "select" ? (
+                {asList ? (
                   <Select required={f.required} value={String(values[f.key] ?? "")} onChange={(e) => setValues({ ...values, [f.key]: e.target.value })}>
                     {!f.required && <option value="">—</option>}
-                    {f.options?.map((o) => (
+                    {options?.map((o) => (
                       <option key={o.value} value={o.value}>
                         {o.label}
                       </option>
@@ -174,7 +179,7 @@ export function CrudList<T extends Row>({
                   </Select>
                 ) : (
                   <Input
-                    type={f.type ?? "text"}
+                    type={!f.type || f.type === "select" ? "text" : f.type}
                     required={f.required}
                     placeholder={f.placeholder}
                     min={f.type === "number" ? 0 : undefined}
@@ -183,8 +188,8 @@ export function CrudList<T extends Row>({
                   />
                 )}
               </Field>
-            ),
-          )}
+            );
+          })}
           <div className="flex justify-end">
             <Button type="submit" loading={saving}>
               Save
