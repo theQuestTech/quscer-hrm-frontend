@@ -88,6 +88,7 @@ interface SupportState {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  refresh: () => Promise<void>;
 }
 
 const Ctx = createContext<SupportState | null>(null);
@@ -127,7 +128,7 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
     [refresh],
   );
 
-  const value = useMemo(() => ({ agent, loading, login, logout }), [agent, loading, login, logout]);
+  const value = useMemo(() => ({ agent, loading, login, logout, refresh }), [agent, loading, login, logout, refresh]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

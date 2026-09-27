@@ -6,7 +6,8 @@ import { formatRelative } from "@/lib/format";
 import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Spinner, Table, Td, Th } from "@/components/ui";
 
 export default function TeamPage() {
-  const { agent } = useSupport();
+  const { agent, refresh } = useSupport();
+  const [renaming, setRenaming] = useState<TeamMember | null>(null);
   const team = useSupportApi<TeamMember[]>("/support/team");
   const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -31,7 +32,7 @@ export default function TeamPage() {
     <>
       <PageHeader
         title="Support team"
-        description={owner ? "People who can open this console." : "People who can open this console. Only the owner can change the team."}
+        description={`People who can open this console. Customers see your name on anything you do for them, e.g. “${agent?.name ?? "Ali"} (Quscer support)”.${owner ? "" : " Only the owner can add or remove people."}`}
         actions={owner ? <Button onClick={() => setAdding(true)}>Add someone</Button> : undefined}
       />
       {error && (
@@ -66,11 +67,18 @@ export default function TeamPage() {
                     {!m.isActive ? <Badge>Switched off</Badge> : m.hasPassword ? <Badge tone="green">Active</Badge> : <Badge tone="yellow">Invited</Badge>}
                   </Td>
                   <Td className="text-right">
-                    {owner && m.id !== agent?.id && (
-                      <Button size="sm" variant="ghost" loading={busy === m.id} onClick={() => toggle(m)}>
-                        {m.isActive ? "Switch off" : "Switch on"}
-                      </Button>
-                    )}
+                    <div className="flex justify-end gap-1">
+                      {(owner || m.id === agent?.id) && (
+                        <Button size="sm" variant="ghost" onClick={() => setRenaming(m)}>
+                          {m.id === agent?.id ? "Change my name" : "Change name"}
+                        </Button>
+                      )}
+                      {owner && m.id !== agent?.id && (
+                        <Button size="sm" variant="ghost" loading={busy === m.id} onClick={() => toggle(m)}>
+                          {m.isActive ? "Switch off" : "Switch on"}
+                        </Button>
+                      )}
+                    </div>
                   </Td>
                 </tr>
               ))}
@@ -78,6 +86,18 @@ export default function TeamPage() {
           </Table>
         )}
       </Card>
+      {renaming && (
+        <RenameModal
+          member={renaming}
+          self={renaming.id === agent?.id}
+          onClose={() => setRenaming(null)}
+          onDone={async () => {
+            setRenaming(null);
+            await team.reload();
+            await refresh();
+          }}
+        />
+      )}
       {adding && (
         <AddModal
           onClose={() => setAdding(false)}
@@ -127,6 +147,44 @@ function AddModal({ onClose, onDone }: { onClose: () => void; onDone: () => void
           </Button>
           <Button type="submit" loading={busy}>
             Add and send invite
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function RenameModal({ member, self, onClose, onDone }: { member: TeamMember; self: boolean; onClose: () => void; onDone: () => void }) {
+  const [name, setName] = useState(member.name);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <Modal open onClose={onClose} title={self ? "Change your name" : `Change ${member.name}'s name`}>
+      <form
+        className="space-y-4"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setBusy(true);
+          setError(null);
+          try {
+            await supportApi("PATCH", `/support/team/${member.id}`, { name: name.trim() });
+            onDone();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : "Could not save");
+            setBusy(false);
+          }
+        }}
+      >
+        {error && <Alert>{error}</Alert>}
+        <Field label="Name" hint={`Customers will see “${name.trim() || "…"} (Quscer support)” on anything ${self ? "you do" : "they do"} from now on.`}>
+          <Input required minLength={2} maxLength={100} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        </Field>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" loading={busy}>
+            Save
           </Button>
         </div>
       </form>

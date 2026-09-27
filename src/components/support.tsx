@@ -77,6 +77,8 @@ export function activityText(a: SupportActivity): string {
       return `switched ${d.email}'s support account back on`;
     case "agent.password_set":
       return "set their password";
+    case "agent.renamed":
+      return `renamed ${d.from} to ${d.to}`;
     default:
       return a.action;
   }
