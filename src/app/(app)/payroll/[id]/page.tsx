@@ -111,9 +111,9 @@ function PayrollRun() {
           hint: "Quscer People doesn't have tax rules for this country yet, so no tax or contributions were worked out. Add them as deductions on their salary.",
         })),
         {
-          label: "Province missing",
+          label: "Province / state missing",
           ids: warnings.missingRegion ?? [],
-          hint: "Income tax was worked out, but not EOBI or social security. Choose their province on their profile, then recalculate.",
+          hint: "Income tax was worked out, but not the contributions that depend on where they work. Set it on their branch (Settings → Branches) or their profile, then recalculate.",
         },
         { label: "Skipped: joins after this month", ids: warnings.skippedNotYetJoined ?? [], hint: "Nothing to pay yet." },
         { label: "Net pay below zero", ids: warnings.negativeNetPay, hint: "Deductions are bigger than pay — check loans and unpaid days." },
