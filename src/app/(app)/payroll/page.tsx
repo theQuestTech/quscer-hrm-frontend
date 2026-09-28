@@ -7,9 +7,9 @@ import { Plus } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/use-api";
-import { formatDate, formatMonth, formatMoney } from "@/lib/format";
+import { formatDate, formatMonth } from "@/lib/format";
 import type { PayrollRunDetail, PayrollRunSummary, PayrollWarnings } from "@/lib/types";
-import { Alert, Button, Card, EmptyState, Field, Input, Modal, PageHeader, Spinner, Table, Td, Th } from "@/components/ui";
+import { Alert, Amounts, Button, Card, EmptyState, Field, Input, Modal, PageHeader, Spinner, Table, Td, Th } from "@/components/ui";
 import { PayrollStatusBadge } from "@/components/status-badges";
 import { RequirePermission } from "@/components/app-shell";
 
@@ -77,7 +77,9 @@ function PayrollRuns() {
                   </Td>
                   <Td className="hidden sm:table-cell">{formatDate(r.payDate)}</Td>
                   <Td>{r.employeeCount}</Td>
-                  <Td className="font-medium">{formatMoney(r.totalNet, r.currency ?? "PKR")}</Td>
+                  <Td className="font-medium">
+                    <Amounts items={r.totals ? r.totals.map((t) => ({ amount: t.net, currency: t.currency })) : [{ amount: r.totalNet, currency: r.currency ?? "PKR" }]} />
+                  </Td>
                   <Td>
                     <PayrollStatusBadge status={r.status} />
                   </Td>
