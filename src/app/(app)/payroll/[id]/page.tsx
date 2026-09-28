@@ -7,7 +7,8 @@ import { ArrowLeft, ChevronDown, ChevronRight, Download, Landmark } from "lucide
 import { api, downloadFile } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/use-api";
-import { countryName, formatDate, formatMonth, formatMoney, fullName, regionName } from "@/lib/format";
+import { formatDate, formatMonth, formatMoney, fullName } from "@/lib/format";
+import { countryLabel, regionName } from "@/lib/geo";
 import type { BreakdownLine, Employee, Paginated, PayrollRunDetail, PayrollWarnings } from "@/lib/types";
 import { Alert, Button, Card, PageHeader, Spinner, Stat, Table, Td, Th } from "@/components/ui";
 import { RequirePermission } from "@/components/app-shell";
@@ -106,7 +107,7 @@ function PayrollRun() {
         { label: "Skipped: no salary set", ids: warnings.skippedNoSalaryStructure, hint: "Set their salary on their profile, then recalculate." },
         { label: "Skipped: no country", ids: warnings.skippedNoJurisdiction, hint: "Give them a branch, or set their country on their profile, then recalculate." },
         ...(warnings.noPayrollRules ?? []).map((c) => ({
-          label: `No payroll rules for ${countryName(c.countryCode)}`,
+          label: `No payroll rules for ${countryLabel(c.countryCode)}`,
           ids: c.employeeIds,
           hint: "Quscer People doesn't have tax rules for this country yet, so no tax or contributions were worked out. Add them as deductions on their salary.",
         })),
@@ -122,7 +123,7 @@ function PayrollRun() {
   // Things that are right as they are, shown so nobody wonders.
   const RULE_NAME = { INCOME_TAX: "income tax", PENSION_FUND: "EOBI / pension fund", SOCIAL_SECURITY: "social security scheme" } as const;
   const noteLines = (warnings?.notCovered ?? []).map((n) => ({
-    label: `No ${RULE_NAME[n.ruleType]} in ${regionName(n.regionCode)}`,
+    label: `No ${RULE_NAME[n.ruleType]} in ${regionName(n.regionCode, n.countryCode)}`,
     ids: n.employeeIds,
     hint: n.ruleType === "SOCIAL_SECURITY" ? "Nothing to charge there — just so you know." : "Nothing was charged for it — check this is right.",
   }));

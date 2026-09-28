@@ -50,7 +50,7 @@ export function Button({
 
 // --- Form fields -----------------------------------------------------------
 
-const inputClass =
+export const inputClass =
   "block w-full rounded-xl border-0 bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-inset ring-gray-200 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-brand-600 disabled:bg-slate-50 disabled:text-slate-500";
 
 // Links the label to its control by id (rather than wrapping it), so a

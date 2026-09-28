@@ -12,7 +12,7 @@ import { Alert, Button, Card, EmptyState, Field, Input, Modal, Select, Spinner, 
 export interface CrudField {
   key: string;
   label: string;
-  type?: "text" | "time" | "date" | "number" | "select" | "checkbox";
+  type?: "text" | "time" | "date" | "number" | "select" | "checkbox" | "custom";
   options?: { value: string; label: string }[];
   // Options that depend on what's typed in the other fields. Returning null
   // shows a plain text box instead of a list.
@@ -21,6 +21,15 @@ export interface CrudField {
   hint?: string;
   placeholder?: string;
   defaultValue?: string | boolean;
+  // On edit, emptying this field clears it (sends null) instead of leaving it as it was.
+  clearable?: boolean;
+  // For type "custom": draws the control. update() can change several fields at once
+  // (e.g. picking a country resets the province / state).
+  render?: (props: {
+    value: string;
+    values: Record<string, string | boolean>;
+    update: (patch: Record<string, string | boolean>) => void;
+  }) => React.ReactElement<{ id?: string; "aria-describedby"?: string }>;
 }
 
 type Row = { id: string } & Record<string, unknown>;
@@ -72,7 +81,10 @@ export function CrudList<T extends Row>({
     for (const f of fields) {
       const v = values[f.key];
       if (f.type === "checkbox") payload[f.key] = v;
-      else if (v === "" || v === undefined) continue;
+      else if (v === "" || v === undefined) {
+        if (f.clearable && editing !== "new") payload[f.key] = null;
+        continue;
+      }
       else if (f.type === "number") payload[f.key] = Number(v);
       else payload[f.key] = v;
     }
@@ -161,6 +173,16 @@ export function CrudList<T extends Row>({
           {fields.map((f) => {
             const options = f.optionsFor ? f.optionsFor(values) : f.options;
             const asList = f.type === "select" && options !== null;
+            if (f.type === "custom" && f.render)
+              return (
+                <Field key={f.key} label={f.label} hint={f.hint}>
+                  {f.render({
+                    value: String(values[f.key] ?? ""),
+                    values,
+                    update: (patch) => setValues((v) => ({ ...v, ...patch })),
+                  })}
+                </Field>
+              );
             return f.type === "checkbox" ? (
               <label key={f.key} className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={Boolean(values[f.key])} onChange={(e) => setValues({ ...values, [f.key]: e.target.checked })} />

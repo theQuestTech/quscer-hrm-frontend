@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useApi } from "@/lib/use-api";
-import { humanize, regionName, regionsFor, todayInput, toDateInput } from "@/lib/format";
+import { humanize, todayInput, toDateInput } from "@/lib/format";
+import { countryLabel, regionName, regionsOf } from "@/lib/geo";
+import { CountryPicker, RegionSelect } from "@/components/geo-pickers";
 import type { Branch, Department, Employee, EmploymentType, Paginated, Shift } from "@/lib/types";
 import { Alert, Button, Field, Input, Select } from "./ui";
 
@@ -27,6 +29,7 @@ function initialValues(e?: Employee): EmployeeFormValues {
     departmentId: e?.departmentId ?? "",
     managerId: e?.managerId ?? "",
     shiftId: e?.shiftId ?? "",
+    countryCode: e?.countryCode ?? "",
     regionCode: e?.regionCode ?? "",
     fatherName: e?.fatherName ?? "",
     cnic: e?.cnic ?? "",
@@ -49,6 +52,7 @@ const CLEARABLE = [
   "probationEndDate", "contractEndDate", "dateOfBirth", "shiftId",
   "fatherName", "cnic", "gender", "maritalStatus", "bloodGroup", "personalEmail", "address", "city",
   "machineUserId", "checkInMethod", "requireOfficeNetwork", "requireOfficeLocation",
+  "countryCode", "regionCode", // empty = "From branch"
 ];
 
 // Yes / No / "company default" (empty) — sent as true / false / null.
@@ -77,10 +81,16 @@ export function EmployeeForm({
   const managers = useApi<Paginated<Employee>>("/employees?pageSize=100&status=ACTIVE");
 
   // Province / state options follow the country: the person's own, else their branch's.
+  // A province / state is only taken from the branch when the country is the same.
   const branch = branches.data?.find((b) => b.id === values.branchId);
-  const country = employee?.countryCode ?? branch?.countryCode ?? null;
-  const regions = regionsFor(country);
-  const branchRegion = branch && (!country || branch.countryCode === country) && branch.regionCode ? regionName(branch.regionCode) : null;
+  const country = values.countryCode || branch?.countryCode || null;
+  const branchRegion =
+    branch && branch.countryCode === country && branch.regionCode ? regionName(branch.regionCode, branch.countryCode) : null;
+  const regionEmpty = branchRegion
+    ? `From branch (${branchRegion})`
+    : regionsOf(country).length
+      ? "Not set"
+      : "None listed for this country";
 
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setValues((v) => ({ ...v, [key]: e.target.value }));
@@ -99,6 +109,9 @@ export function EmployeeForm({
       }
       payload[key] = YES_NO.includes(key) ? value === "yes" : value;
     }
+    // A province / state only counts together with its country, so picking one
+    // while the country is "From branch" pins the branch's country too.
+    if (!values.countryCode && values.regionCode && branch) payload.countryCode = branch.countryCode;
     try {
       await onSubmit(payload);
     } catch (err) {
@@ -213,22 +226,15 @@ export function EmployeeForm({
               ))}
           </Select>
         </Field>
-        <Field
-          label="Province / state (for tax & social security)"
-          hint="Leave as the branch's unless this person is registered somewhere else."
-        >
-          {regions ? (
-            <Select value={values.regionCode} onChange={set("regionCode")}>
-              <option value="">{branchRegion ? `From branch (${branchRegion})` : "From branch"}</option>
-              {regions.map((r) => (
-                <option key={r.code} value={r.code}>
-                  {r.name}
-                </option>
-              ))}
-            </Select>
-          ) : (
-            <Input value={values.regionCode} onChange={set("regionCode")} placeholder={branchRegion ? `From branch (${branchRegion})` : "From branch"} maxLength={10} />
-          )}
+        <Field label="Country (for tax & social security)" hint="Leave as the branch's unless this person is registered somewhere else.">
+          <CountryPicker
+            value={values.countryCode}
+            onChange={(code) => setValues((v) => ({ ...v, countryCode: code, regionCode: "" }))}
+            emptyLabel={branch ? `From branch (${countryLabel(branch.countryCode)})` : "From branch"}
+          />
+        </Field>
+        <Field label="Province / state">
+          <RegionSelect country={country} value={values.regionCode} onChange={(code) => setValues((v) => ({ ...v, regionCode: code }))} emptyLabel={regionEmpty} />
         </Field>
       </div>
 

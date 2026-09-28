@@ -7,7 +7,8 @@ import { ArrowLeft, Pencil } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/use-api";
-import { countryName, formatDate, fullName, humanize, jurisdictionOf, regionName } from "@/lib/format";
+import { formatDate, fullName, humanize, jurisdictionOf } from "@/lib/format";
+import { countryLabel, regionName } from "@/lib/geo";
 import type { EmployeeProfile } from "@/lib/types";
 import { Alert, Button, Card, PageHeader, Spinner, Tabs } from "@/components/ui";
 import { EmployeeStatusBadge } from "@/components/status-badges";
@@ -190,6 +191,6 @@ function Detail({ label, value }: { label: string; value: string | null | undefi
 function taxPlace(e: EmployeeProfile): string {
   const j = jurisdictionOf(e);
   if (!j.countryCode) return "Not set — payroll will skip this person";
-  const place = [countryName(j.countryCode), j.regionCode ? regionName(j.regionCode) : "province / state not set"].join(" / ");
+  const place = [countryLabel(j.countryCode), j.regionCode ? regionName(j.regionCode, j.countryCode) : "province / state not set"].join(" / ");
   return j.fromBranch ? `${place} (from branch)` : place;
 }
