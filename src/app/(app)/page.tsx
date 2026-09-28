@@ -23,7 +23,7 @@ import type {
   MySummary,
   TeamSummary,
 } from "@/lib/types";
-import { Alert, Spinner, Tabs } from "@/components/ui";
+import { Alert, Amounts, Spinner, Tabs } from "@/components/ui";
 import { roleLabel } from "@/components/app-shell";
 import { Icon } from "@/components/figma-icons";
 import {
@@ -351,7 +351,11 @@ function HrDashboard({ me, can }: { me: Me; can: (p: string) => boolean }) {
             },
             {
               label: "Payroll Total (Net)",
-              value: run ? formatMoney(run.totalNet, run.currency ?? me.organization.currency) : "—",
+              value: run ? (
+                <Amounts items={run.totals ? run.totals.map((t) => ({ amount: t.net, currency: t.currency })) : [{ amount: run.totalNet, currency: run.currency ?? me.organization.currency }]} />
+              ) : (
+                "—"
+              ),
               ...QUICK_TONES.green,
               href: run ? `/payroll/${run.id}` : "/payroll",
             },

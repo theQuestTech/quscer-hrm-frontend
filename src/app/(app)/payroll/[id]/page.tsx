@@ -7,10 +7,10 @@ import { ArrowLeft, ChevronDown, ChevronRight, Download, Landmark } from "lucide
 import { api, downloadFile } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/use-api";
-import { formatDate, formatMonth, formatMoney, fullName } from "@/lib/format";
+import { formatDate, formatMonth, formatMoney, fullName, totalsByCurrency } from "@/lib/format";
 import { countryLabel, regionName } from "@/lib/geo";
 import type { BreakdownLine, Employee, Paginated, PayrollRunDetail, PayrollWarnings } from "@/lib/types";
-import { Alert, Button, Card, PageHeader, Spinner, Stat, Table, Td, Th } from "@/components/ui";
+import { Alert, Amounts, Button, Card, PageHeader, Spinner, Stat, Table, Td, Th } from "@/components/ui";
 import { RequirePermission } from "@/components/app-shell";
 
 export default function PayrollRunPage() {
@@ -92,9 +92,8 @@ function PayrollRun() {
   const r = run.data;
   if (!r) return null;
 
-  const currency = r.lineItems[0]?.currency ?? "PKR";
-  const total = (key: "grossSalary" | "totalDeductions" | "netSalary") =>
-    r.lineItems.reduce((sum, li) => sum + Number(li[key]), 0);
+  // One total per currency: people paid in AED and PKR aren't added together.
+  const total = (key: "grossSalary" | "totalDeductions" | "netSalary") => totalsByCurrency(r.lineItems, (li) => li[key]);
   const nameOf = (employeeId: string) => {
     const e = employees.data?.items.find((x) => x.id === employeeId);
     return e ? fullName(e) : employeeId;
@@ -210,9 +209,9 @@ function PayrollRun() {
 
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Stat label="Employees" value={r.lineItems.length} />
-          <Stat label="Gross pay" value={formatMoney(total("grossSalary"), currency)} />
-          <Stat label="Deductions" value={formatMoney(total("totalDeductions"), currency)} />
-          <Stat label="Net pay" value={formatMoney(total("netSalary"), currency)} />
+          <Stat label="Gross pay" value={<Amounts items={total("grossSalary")} />} />
+          <Stat label="Deductions" value={<Amounts items={total("totalDeductions")} />} />
+          <Stat label="Net pay" value={<Amounts items={total("netSalary")} />} />
         </div>
 
         <Card title="Employees" padded={false}>

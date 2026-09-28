@@ -255,8 +255,18 @@ export interface PayrollRunSummary {
   payDate: string;
   status: PayrollStatus;
   employeeCount: number;
-  totalNet: number;
+  totalNet: number; // main currency only; use totals
   currency: string | null;
+  totals?: CurrencyTotal[];
+}
+
+// Pay is totalled per currency, never across them.
+export interface CurrencyTotal {
+  currency: string;
+  people: number;
+  gross: number;
+  deductions: number;
+  net: number;
 }
 
 export interface BreakdownLine {
@@ -445,8 +455,9 @@ export interface DashboardSummary {
     payDate: string;
     status: PayrollStatus;
     employeeCount: number;
-    totalNet: number;
+    totalNet: number; // main currency only; use totals
     currency: string | null;
+    totals?: CurrencyTotal[];
   } | null;
   activity: ActivityItem[];
 }

@@ -2,6 +2,7 @@
 
 import { cloneElement, useEffect, useId, useRef } from "react";
 import { X, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { formatMoney } from "@/lib/format";
 
 function cx(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(" ");
@@ -143,6 +144,21 @@ export function Card({
       )}
       <div className={padded ? "p-5" : undefined}>{children}</div>
     </section>
+  );
+}
+
+// Money in one or more currencies: one line each, smaller when there are several.
+export function Amounts({ items, empty = "—" }: { items: { amount: number; currency: string }[]; empty?: string }) {
+  if (!items.length) return <>{empty}</>;
+  if (items.length === 1) return <>{formatMoney(items[0].amount, items[0].currency)}</>;
+  return (
+    <span className="block text-lg leading-snug">
+      {items.map((i) => (
+        <span key={i.currency} className="block">
+          {formatMoney(i.amount, i.currency)}
+        </span>
+      ))}
+    </span>
   );
 }
 

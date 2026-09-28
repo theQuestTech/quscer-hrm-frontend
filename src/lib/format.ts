@@ -112,3 +112,18 @@ export function countryName(code: string): string {
 export function initials(p: { firstName: string; lastName: string }): string {
   return `${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}`.toUpperCase();
 }
+
+// Adds up pay per currency: PKR and AED are never added together. The
+// currency with the most people comes first.
+export function totalsByCurrency<T extends { currency: string }>(items: T[], amount: (item: T) => Money): { currency: string; amount: number }[] {
+  const sums = new Map<string, { amount: number; people: number }>();
+  for (const item of items) {
+    const t = sums.get(item.currency) ?? { amount: 0, people: 0 };
+    t.amount += Number(amount(item));
+    t.people += 1;
+    sums.set(item.currency, t);
+  }
+  return [...sums]
+    .sort(([a, x], [b, y]) => y.people - x.people || a.localeCompare(b))
+    .map(([currency, t]) => ({ currency, amount: Math.round(t.amount * 100) / 100 }));
+}
