@@ -8,6 +8,7 @@ import { useApi } from "@/lib/use-api";
 import { WEEKDAYS, formatDate } from "@/lib/format";
 import { countryLabel, regionName, regionsOf, timeZonesOf } from "@/lib/geo";
 import { CountryPicker, RegionSelect, TimeZoneSelect } from "@/components/geo-pickers";
+import { PayrollDeductions } from "./payroll-deductions";
 import type { AppUser, Branch, CostCentre, Department, Holiday, LeaveType, OrgSettings, Role, Shift } from "@/lib/types";
 import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, Table, Tabs, Td, Th } from "@/components/ui";
 import { RequirePermission } from "@/components/app-shell";
@@ -15,7 +16,7 @@ import { CrudList } from "./crud-list";
 import { AttendanceSettings } from "./attendance-settings";
 import { ActivityHistory } from "./activity-history";
 
-type Tab = "company" | "branches" | "departments" | "cost-centres" | "shifts" | "holidays" | "leave-types" | "attendance" | "users" | "activity";
+type Tab = "company" | "branches" | "departments" | "cost-centres" | "shifts" | "holidays" | "leave-types" | "deductions" | "attendance" | "users" | "activity";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "company", label: "Company" },
@@ -25,6 +26,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "shifts", label: "Shifts" },
   { id: "holidays", label: "Holidays" },
   { id: "leave-types", label: "Leave types" },
+  { id: "deductions", label: "Payroll deductions" },
   { id: "attendance", label: "Attendance & machines" },
   { id: "users", label: "Users & roles" },
   { id: "activity", label: "Activity history" },
@@ -69,6 +71,7 @@ function Settings() {
       {tab === "shifts" && <Shifts />}
       {tab === "holidays" && <Holidays />}
       {tab === "leave-types" && <LeaveTypes />}
+      {tab === "deductions" && <PayrollDeductions />}
       {tab === "attendance" && <AttendanceSettings />}
       {tab === "users" && <Users />}
       {tab === "activity" && <ActivityHistory />}

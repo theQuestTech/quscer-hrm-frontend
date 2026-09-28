@@ -120,7 +120,7 @@ export function CountryPicker({
                 choose(o.code);
               }}
               onMouseEnter={() => setActive(i)}
-              className={`flex cursor-pointer items-center gap-2 px-3 py-2 ${i === active ? "bg-teal-50" : ""} ${o.code ? "" : "text-slate-500"}`}
+              className={`flex cursor-pointer items-center gap-2 px-3 py-2 ${i === active ? "bg-brand-50" : ""} ${o.code ? "" : "text-slate-500"}`}
             >
               <span className="truncate">{o.label}</span>
               {o.hint && <span className="ml-auto text-xs text-slate-400">{o.hint}</span>}
