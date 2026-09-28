@@ -297,7 +297,33 @@ export interface PayrollWarnings {
   // Worked out only in part (older saved warnings may not have these).
   missingRegion?: string[];
   noPayrollRules?: { countryCode: string; employeeIds: string[] }[];
-  notCovered?: { ruleType: "INCOME_TAX" | "PENSION_FUND" | "SOCIAL_SECURITY"; regionCode: string; employeeIds: string[] }[];
+  notCovered?: { ruleType: "INCOME_TAX" | "PENSION_FUND" | "SOCIAL_SECURITY"; countryCode?: string; regionCode: string; employeeIds: string[] }[];
+  // A company deduction whose amounts are in another currency than these people's salary.
+  currencyMismatch?: { deductionId: string; name: string; employeeIds: string[] }[];
+}
+
+export type DeductionMethod = "PERCENT_OF_BASIC" | "PERCENT_OF_GROSS" | "FIXED_AMOUNT" | "TAX_SLABS";
+
+// Settings → Payroll deductions
+export interface CompanyDeduction {
+  id: string;
+  name: string;
+  countryCode: string | null;
+  regionCode: string | null;
+  method: DeductionMethod;
+  employeePercent: number | null;
+  employerPercent: number | null;
+  employeeAmount: number | null;
+  employerAmount: number | null;
+  wageCap: number | null;
+  slabs: { upTo: number | null; ratePercent: number }[] | null;
+  currency: string | null;
+  appliesToAll: boolean;
+  employeeIds: string[];
+  reducesTaxablePay: boolean;
+  effectiveFrom: string; // "2026-01"
+  effectiveTo: string | null;
+  sourceRef: string | null;
 }
 
 export interface MyPayslip {

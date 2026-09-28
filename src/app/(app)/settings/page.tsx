@@ -5,7 +5,10 @@ import { Suspense, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/use-api";
-import { WEEKDAYS, formatDate, regionName, regionsFor } from "@/lib/format";
+import { WEEKDAYS, formatDate } from "@/lib/format";
+import { countryLabel, regionName, regionsOf, timeZonesOf } from "@/lib/geo";
+import { CountryPicker, RegionSelect, TimeZoneSelect } from "@/components/geo-pickers";
+import { PayrollDeductions } from "./payroll-deductions";
 import type { AppUser, Branch, CostCentre, Department, Holiday, LeaveType, OrgSettings, Role, Shift } from "@/lib/types";
 import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, Table, Tabs, Td, Th } from "@/components/ui";
 import { RequirePermission } from "@/components/app-shell";
@@ -13,7 +16,7 @@ import { CrudList } from "./crud-list";
 import { AttendanceSettings } from "./attendance-settings";
 import { ActivityHistory } from "./activity-history";
 
-type Tab = "company" | "branches" | "departments" | "cost-centres" | "shifts" | "holidays" | "leave-types" | "attendance" | "users" | "activity";
+type Tab = "company" | "branches" | "departments" | "cost-centres" | "shifts" | "holidays" | "leave-types" | "deductions" | "attendance" | "users" | "activity";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "company", label: "Company" },
@@ -23,6 +26,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "shifts", label: "Shifts" },
   { id: "holidays", label: "Holidays" },
   { id: "leave-types", label: "Leave types" },
+  { id: "deductions", label: "Payroll deductions" },
   { id: "attendance", label: "Attendance & machines" },
   { id: "users", label: "Users & roles" },
   { id: "activity", label: "Activity history" },
@@ -67,6 +71,7 @@ function Settings() {
       {tab === "shifts" && <Shifts />}
       {tab === "holidays" && <Holidays />}
       {tab === "leave-types" && <LeaveTypes />}
+      {tab === "deductions" && <PayrollDeductions />}
       {tab === "attendance" && <AttendanceSettings />}
       {tab === "users" && <Users />}
       {tab === "activity" && <ActivityHistory />}
@@ -146,8 +151,8 @@ function CompanyForm({ settings, onSaved }: { settings: OrgSettings; onSaved: ()
           <Field label="Currency" hint="3-letter code, e.g. PKR">
             <Input required maxLength={3} value={form.defaultCurrency} onChange={(e) => setForm({ ...form, defaultCurrency: e.target.value.toUpperCase() })} />
           </Field>
-          <Field label="Timezone" hint="e.g. Asia/Karachi">
-            <Input required value={form.defaultTimezone} onChange={(e) => setForm({ ...form, defaultTimezone: e.target.value })} />
+          <Field label="Time zone" hint="Used where a branch doesn't set its own.">
+            <TimeZoneSelect value={form.defaultTimezone} onChange={(tz) => setForm({ ...form, defaultTimezone: tz })} />
           </Field>
         </div>
         <fieldset>
@@ -293,20 +298,58 @@ function Branches() {
       description="Each branch's country and province / state decide which tax, social security and minimum-wage rules apply to the people in it. Set it once here — employees take it from their branch unless their profile says otherwise."
       fields={[
         { key: "name", label: "Name", required: true, placeholder: "Lahore Head Office" },
-        { key: "countryCode", label: "Country code", required: true, defaultValue: "PK", hint: "2 letters, e.g. PK" },
+        {
+          key: "countryCode",
+          label: "Country",
+          type: "custom",
+          required: true,
+          defaultValue: "PK",
+          render: ({ value, values, update }) => (
+            <CountryPicker
+              required
+              value={value}
+              onChange={(code) => {
+                // A new country means a new list of provinces / states, and usually a new time zone.
+                const zones = timeZonesOf(code);
+                const keepZone = zones.includes(String(values.timezone ?? ""));
+                update({ countryCode: code, regionCode: "", ...(!keepZone && zones[0] ? { timezone: zones[0] } : {}) });
+              }}
+            />
+          ),
+        },
         {
           key: "regionCode",
           label: "Province / state",
-          type: "select",
-          optionsFor: (v) => regionsFor(String(v.countryCode ?? ""))?.map((r) => ({ value: r.code, label: r.name })) ?? null,
+          type: "custom",
+          clearable: true,
           hint: "Needed where tax or social security differs by province / state.",
+          render: ({ value, values, update }) => (
+            <RegionSelect
+              country={String(values.countryCode ?? "")}
+              value={value}
+              onChange={(code) => update({ regionCode: code })}
+              emptyLabel={regionsOf(String(values.countryCode ?? "")).length ? "Whole country / not needed" : "None listed for this country"}
+            />
+          ),
         },
-        { key: "timezone", label: "Timezone", required: true, defaultValue: "Asia/Karachi" },
+        {
+          key: "timezone",
+          label: "Time zone",
+          type: "custom",
+          required: true,
+          defaultValue: "Asia/Karachi",
+          hint: "Suggested from the country; attendance times are read in it.",
+          render: ({ value, values, update }) => (
+            <TimeZoneSelect country={String(values.countryCode ?? "")} value={value} onChange={(tz) => update({ timezone: tz })} />
+          ),
+        },
         { key: "isActive", label: "Active", type: "checkbox", defaultValue: true },
       ]}
       columns={[
         { label: "Name", render: (b) => <span className="font-medium text-slate-900">{b.name}</span> },
-        { label: "Province / state", render: (b) => (b.regionCode ? regionName(b.regionCode) : "—") },
+        { label: "Country", render: (b) => countryLabel(b.countryCode) },
+        { label: "Province / state", render: (b) => (b.regionCode ? regionName(b.regionCode, b.countryCode) : "—") },
+        { label: "Time zone", render: (b) => b.timezone },
         { label: "Employees", render: (b) => b._count?.employees ?? 0 },
         { label: "Status", render: (b) => (b.isActive ? <Badge tone="green">Active</Badge> : <Badge>Inactive</Badge>) },
       ]}

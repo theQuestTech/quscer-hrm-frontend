@@ -85,25 +85,6 @@ export function humanize(value: string): string {
 
 export const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-// Pakistan provinces/territories as used by the statutory rules (regionCode).
-export const PK_REGIONS = [
-  { code: "PB", name: "Punjab" },
-  { code: "SD", name: "Sindh" },
-  { code: "KP", name: "Khyber Pakhtunkhwa" },
-  { code: "BA", name: "Balochistan" },
-  { code: "ICT", name: "Islamabad Capital Territory" },
-];
-
-export function regionName(code: string): string {
-  return PK_REGIONS.find((r) => r.code === code)?.name ?? code;
-}
-
-// The provinces/states HRM has payroll rules for, by country. A country not
-// listed here has no regional list yet: its province/state is typed as a code.
-export function regionsFor(countryCode: string | null | undefined): { code: string; name: string }[] | null {
-  return (countryCode ?? "").toUpperCase() === "PK" ? PK_REGIONS : null;
-}
-
 // Where someone's tax is worked out: their own country and province/state,
 // else their branch's (the same rule payroll uses).
 export function jurisdictionOf(e: {

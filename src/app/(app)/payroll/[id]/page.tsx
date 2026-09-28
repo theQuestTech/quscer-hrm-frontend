@@ -7,7 +7,8 @@ import { ArrowLeft, ChevronDown, ChevronRight, Download, Landmark } from "lucide
 import { api, downloadFile } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/use-api";
-import { countryName, formatDate, formatMonth, formatMoney, fullName, regionName } from "@/lib/format";
+import { formatDate, formatMonth, formatMoney, fullName } from "@/lib/format";
+import { countryLabel, regionName } from "@/lib/geo";
 import type { BreakdownLine, Employee, Paginated, PayrollRunDetail, PayrollWarnings } from "@/lib/types";
 import { Alert, Button, Card, PageHeader, Spinner, Stat, Table, Td, Th } from "@/components/ui";
 import { RequirePermission } from "@/components/app-shell";
@@ -101,14 +102,21 @@ function PayrollRun() {
   const stepIndex = STEPS.indexOf(r.status);
   const canDownload = r.status === "APPROVED" || r.status === "LOCKED";
 
-  const warningLines: { label: string; ids: string[]; hint: string }[] = warnings
+  const warningLines: WarningLine[] = warnings
     ? [
         { label: "Skipped: no salary set", ids: warnings.skippedNoSalaryStructure, hint: "Set their salary on their profile, then recalculate." },
         { label: "Skipped: no country", ids: warnings.skippedNoJurisdiction, hint: "Give them a branch, or set their country on their profile, then recalculate." },
         ...(warnings.noPayrollRules ?? []).map((c) => ({
-          label: `No payroll rules for ${countryName(c.countryCode)}`,
+          label: `No payroll rules for ${countryLabel(c.countryCode)}`,
           ids: c.employeeIds,
-          hint: "Quscer People doesn't have tax rules for this country yet, so no tax or contributions were worked out. Add them as deductions on their salary.",
+          hint: "Quscer People doesn't have tax rules for this country yet, so no tax or contributions were worked out.",
+          link: { href: "/settings?tab=deductions", label: "Add your own deductions" },
+        })),
+        ...(warnings.currencyMismatch ?? []).map((m) => ({
+          label: `“${m.name}” not taken: paid in another currency`,
+          ids: m.employeeIds,
+          hint: "Its amounts are in a different currency from their salary. Add a separate deduction in their currency.",
+          link: { href: "/settings?tab=deductions", label: "Payroll deductions" },
         })),
         {
           label: "Province / state missing",
@@ -122,7 +130,7 @@ function PayrollRun() {
   // Things that are right as they are, shown so nobody wonders.
   const RULE_NAME = { INCOME_TAX: "income tax", PENSION_FUND: "EOBI / pension fund", SOCIAL_SECURITY: "social security scheme" } as const;
   const noteLines = (warnings?.notCovered ?? []).map((n) => ({
-    label: `No ${RULE_NAME[n.ruleType]} in ${regionName(n.regionCode)}`,
+    label: `No ${RULE_NAME[n.ruleType]} in ${regionName(n.regionCode, n.countryCode)}`,
     ids: n.employeeIds,
     hint: n.ruleType === "SOCIAL_SECURITY" ? "Nothing to charge there — just so you know." : "Nothing was charged for it — check this is right.",
   }));
@@ -302,7 +310,9 @@ function Breakdown({ lines, currency }: { lines: BreakdownLine[]; currency: stri
   );
 }
 
-function WarningList({ lines, nameOf }: { lines: { label: string; ids: string[]; hint: string }[]; nameOf: (id: string) => string }) {
+type WarningLine = { label: string; ids: string[]; hint: string; link?: { href: string; label: string } };
+
+function WarningList({ lines, nameOf }: { lines: WarningLine[]; nameOf: (id: string) => string }) {
   return (
     <ul className="mt-2 space-y-1">
       {lines.map((w) => (
@@ -317,6 +327,14 @@ function WarningList({ lines, nameOf }: { lines: { label: string; ids: string[];
             </Fragment>
           ))}
           <span className="text-slate-600"> — {w.hint}</span>
+          {w.link && (
+            <>
+              {" "}
+              <Link href={w.link.href} className="font-medium text-brand-700 underline">
+                {w.link.label}
+              </Link>
+            </>
+          )}
         </li>
       ))}
     </ul>
