@@ -304,12 +304,16 @@ export function BankSection({ employee, onChange }: { employee: EmployeeProfile;
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    const ok = await action.run(() =>
-      api("PUT", `/employees/${employee.id}/bank-detail`, { ...form, branchCode: form.branchCode || undefined }),
-    );
+    let pending = false;
+    const ok = await action.run(async () => {
+      const res = await api<{ pendingApproval?: { id: string } }>("PUT", `/employees/${employee.id}/bank-detail`, { ...form, branchCode: form.branchCode || undefined });
+      pending = !!res?.pendingApproval;
+    });
     if (ok) {
       setEditing(false);
       setForm((f) => ({ ...f, accountNumber: "" }));
+      // A change waits for a second person (Settings › Security).
+      if (pending) window.alert("Sent for approval — the new account is used once someone else with employee rights approves it in Settings › Security.");
       onChange();
     }
   }

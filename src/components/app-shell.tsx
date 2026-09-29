@@ -100,9 +100,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const { setupRequired } = useAuth();
   useEffect(() => {
     if (!loading && !me) router.replace("/login");
-  }, [loading, me, router]);
+    // Two-step sign-in is required for this person: set it up first.
+    else if (!loading && me && setupRequired) router.replace(`/two-step-setup?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+  }, [loading, me, setupRequired, router]);
 
   useEffect(() => setMenuOpen(false), [pathname]);
 
@@ -115,7 +118,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [pathname]);
 
-  if (loading || !me) return <Spinner />;
+  if (loading || !me || setupRequired) return <Spinner />;
 
   const items = NAV.filter((item) =>
     item.visible({

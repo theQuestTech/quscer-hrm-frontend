@@ -6,11 +6,12 @@ import { Building2, Plus } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader } from "@/components/ui";
+import { MyTwoStepCard } from "@/components/two-step";
 
 // My Account: how you sign in. Your company list shows for HR admins (who
 // can add companies) and anyone who belongs to more than one company.
 export default function AccountPage() {
-  const { me, can } = useAuth();
+  const { me, can, applyToken } = useAuth();
   const showCompanies = !!me && (can("hrm.settings.write") || me.companies.length > 1);
   const [form, setForm] = useState({ currentPassword: "", newPassword: "", confirm: "" });
   const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
@@ -41,6 +42,10 @@ export default function AccountPage() {
   return (
     <>
       <PageHeader title="My Account" description={`Signed in as ${me?.user.email ?? ""}`} />
+
+      <div className="mb-6 max-w-2xl">
+        <MyTwoStepCard onToken={applyToken} />
+      </div>
       <div className="grid gap-6 lg:grid-cols-2">
       {showCompanies && <Companies />}
       <Card title="Change password">
