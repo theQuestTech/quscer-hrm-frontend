@@ -6,6 +6,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { API_URL, ApiError, errorMessage } from "./api";
+import { CODE_REQUIRED, CODE_WRONG, SETUP_REQUIRED, askCode } from "./two-step";
+
+export const SUPPORT_SETUP_PATH = "/support/two-step-setup";
 
 const KEY = "quscer-support-token";
 
@@ -28,7 +31,7 @@ function setSupportToken(token: string | null) {
 
 let onSignedOut: (() => void) | null = null;
 
-export async function supportApi<T = unknown>(method: string, path: string, body?: object): Promise<T> {
+export async function supportApi<T = unknown>(method: string, path: string, body?: object, code?: string, tries = 0): Promise<T> {
   const token = getSupportToken();
   let res: Response;
   try {
@@ -37,6 +40,7 @@ export async function supportApi<T = unknown>(method: string, path: string, body
       headers: {
         ...(token && { Authorization: `Bearer ${token}` }),
         ...(body !== undefined && { "Content-Type": "application/json" }),
+        ...(code && { "X-Two-Step-Code": code }),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
@@ -46,6 +50,17 @@ export async function supportApi<T = unknown>(method: string, path: string, body
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
   if (!res.ok) {
+    const reason = res.status === 403 && data && typeof data === "object" ? (data as { code?: string }).code : undefined;
+    // "Confirm it's you": ask for the code, then send the same request again with it.
+    if ((reason === CODE_REQUIRED || reason === CODE_WRONG) && tries < 3) {
+      const typed = await askCode("Type the 6-digit code from your authenticator app to confirm.", reason === CODE_WRONG ? errorMessage(data, "That code isn't right") : null);
+      if (!typed) throw new ApiError(403, "Cancelled — nothing was changed");
+      return supportApi<T>(method, path, body, typed, tries + 1);
+    }
+    // Two-step isn't set up (new staff, or an owner reset it): only the setup screen works.
+    if (reason === SETUP_REQUIRED && typeof window !== "undefined" && window.location.pathname !== SUPPORT_SETUP_PATH) {
+      window.location.assign(SUPPORT_SETUP_PATH);
+    }
     if (res.status === 401 && token) onSignedOut?.();
     throw new ApiError(res.status, errorMessage(data, `Request failed (${res.status})`));
   }
@@ -81,12 +96,17 @@ export interface Agent {
   name: string;
   email: string;
   isOwner: boolean;
+  twoStepOn: boolean;
 }
+
+type LoginResult = { accessToken: string; setupRequired?: boolean } | { twoStepRequired: true; challengeToken: string };
 
 interface SupportState {
   agent: Agent | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  /** Returns a challenge when the code from the phone is needed next. */
+  login: (email: string, password: string) => Promise<{ challengeToken: string } | null>;
+  loginWithCode: (challengeToken: string, answer: { code?: string; backupCode?: string }) => Promise<void>;
   logout: () => void;
   refresh: () => Promise<void>;
 }
@@ -121,14 +141,25 @@ export function SupportProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      const { accessToken } = await supportApi<{ accessToken: string }>("POST", "/support/auth/login", { email, password });
+      const res = await supportApi<LoginResult>("POST", "/support/auth/login", { email, password });
+      if ("twoStepRequired" in res) return { challengeToken: res.challengeToken };
+      setSupportToken(res.accessToken);
+      await refresh();
+      return null;
+    },
+    [refresh],
+  );
+
+  const loginWithCode = useCallback(
+    async (challengeToken: string, answer: { code?: string; backupCode?: string }) => {
+      const { accessToken } = await supportApi<{ accessToken: string }>("POST", "/support/auth/login/two-step", { challengeToken, ...answer });
       setSupportToken(accessToken);
       await refresh();
     },
     [refresh],
   );
 
-  const value = useMemo(() => ({ agent, loading, login, logout, refresh }), [agent, loading, login, logout, refresh]);
+  const value = useMemo(() => ({ agent, loading, login, loginWithCode, logout, refresh }), [agent, loading, login, loginWithCode, logout, refresh]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
@@ -263,6 +294,7 @@ export interface TeamMember {
   isOwner: boolean;
   isActive: boolean;
   hasPassword: boolean;
+  hasTwoStep: boolean;
   lastLoginAt: string | null;
   createdAt: string;
 }

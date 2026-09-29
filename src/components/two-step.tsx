@@ -65,22 +65,33 @@ interface Setup {
 }
 
 // Turning two-step on: scan the QR code, type the code, keep the backup codes.
-export function TwoStepSetup({ onDone, compact }: { onDone: (accessToken: string) => void; compact?: boolean }) {
+// `client`/`base` let the support console reuse it with its own sign-in (no new token there).
+export function TwoStepSetup({
+  onDone,
+  compact,
+  client = api,
+  base = "/auth/two-step",
+}: {
+  onDone: (accessToken: string) => void;
+  compact?: boolean;
+  client?: <T>(method: string, path: string, body?: object) => Promise<T>;
+  base?: string;
+}) {
   const [setup, setSetup] = useState<Setup | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ backupCodes: string[]; accessToken: string } | null>(null);
   useEffect(() => {
-    api<Setup>("POST", "/auth/two-step/setup")
+    client<Setup>("POST", `${base}/setup`)
       .then(setSetup)
       .catch((e) => setError(e instanceof Error ? e.message : "Could not start"));
-  }, []);
+  }, [client, base]);
   async function confirm() {
     setBusy(true);
     setError(null);
     try {
-      setResult(await api<{ backupCodes: string[]; accessToken: string }>("POST", "/auth/two-step/confirm", { code }));
+      setResult(await client<{ backupCodes: string[]; accessToken: string }>("POST", `${base}/confirm`, { code }));
     } catch (e) {
       setCode("");
       setError(e instanceof Error ? e.message : "That code isn't right");
