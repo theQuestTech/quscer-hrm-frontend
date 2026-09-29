@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { type Overview, type EmailStatus, type SupportActivity, type TicketStatus, supportApi, useSupport, useSupportApi } from "@/lib/support";
+import { type Overview, type EmailStatus, type SupportActivity, type TicketStatus, SUPPORT_SETUP_PATH, supportApi, useSupport, useSupportApi } from "@/lib/support";
 import { Alert, Badge, type BadgeTone, Button, Field, Input, Modal, Select, Spinner, cx } from "./ui";
 
 // --- Words ---------------------------------------------------------------------------------
@@ -79,6 +79,10 @@ export function activityText(a: SupportActivity): string {
       return "set their password";
     case "agent.renamed":
       return `renamed ${d.from} to ${d.to}`;
+    case "agent.two_step_on":
+      return "turned on two-step sign-in";
+    case "agent.two_step_reset":
+      return `reset ${d.email}'s two-step sign-in`;
     default:
       return a.action;
   }
@@ -103,6 +107,8 @@ export function SupportShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!loading && !agent) router.replace("/support/login");
+    // Every support person needs two-step sign-in before the console opens.
+    else if (agent && !agent.twoStepOn) router.replace(SUPPORT_SETUP_PATH);
   }, [loading, agent, router]);
 
   useEffect(() => {
@@ -113,7 +119,7 @@ export function SupportShell({ children }: { children: React.ReactNode }) {
       .catch(() => undefined);
   }, [pathname, agent]);
 
-  if (loading || !agent) return <Spinner />;
+  if (loading || !agent || !agent.twoStepOn) return <Spinner />;
 
   const active = (href: string, exact?: boolean) =>
     exact ? pathname === href || pathname.startsWith("/support/companies") : pathname.startsWith(href);

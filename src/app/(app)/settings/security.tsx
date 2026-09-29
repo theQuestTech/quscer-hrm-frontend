@@ -155,12 +155,21 @@ export function SecuritySettings() {
   );
 }
 
-// "Record checked · untouched" for the activity history.
+// "Record checked · untouched" for the activity history. Normally only entries added
+// since the last check are read; "Check the whole record" re-reads everything.
 export function ActivityCheck() {
-  const check = useApi<{ entries: number; intact: boolean; brokenAt: number | null }>("/activity/verify");
+  const [full, setFull] = useState(false);
+  const check = useApi<{ entries: number; intact: boolean; brokenAt: number | null; full?: boolean }>(full ? "/activity/verify?full=1" : "/activity/verify");
   if (!check.data) return null;
   return check.data.intact ? (
-    <Badge tone="green">Record checked · untouched</Badge>
+    <span className="inline-flex items-center gap-2">
+      <Badge tone="green">{check.data.full ? "Whole record checked" : "Record checked"} · untouched</Badge>
+      {!check.data.full && (
+        <button type="button" className="text-xs text-slate-500 underline hover:text-slate-700" disabled={check.loading} onClick={() => setFull(true)}>
+          {check.loading ? "Checking…" : "Check the whole record"}
+        </button>
+      )}
+    </span>
   ) : (
     <Badge tone="red">Entry #{check.data.brokenAt} was changed — contact Quscer support</Badge>
   );
