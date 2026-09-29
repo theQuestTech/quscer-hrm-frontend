@@ -27,7 +27,7 @@ const STEP_LABELS = { DRAFT: "Draft", SUBMITTED: "Waiting for approval", APPROVE
 function PayrollRun() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { can } = useAuth();
+  const { can, me } = useAuth();
   const run = useApi<PayrollRunDetail>(`/payroll-runs/${id}`);
   const employees = useApi<Paginated<Employee>>(can("hrm.employee.read") ? "/employees?pageSize=100" : null);
   const [warnings, setWarnings] = useState<PayrollWarnings | null>(null);
@@ -161,6 +161,9 @@ function PayrollRun() {
               <Button onClick={() => act("approve")} loading={busy === "approve"}>
                 Approve payroll
               </Button>
+            )}
+            {r.status === "SUBMITTED" && r.runByUserId && r.runByUserId === me?.user.id && (
+              <p className="basis-full text-xs text-slate-500">You prepared this payroll, so a different person with approve rights approves it. If nobody else can, you can approve it alone with your code — it’s recorded.</p>
             )}
             {canDownload && can("hrm.payroll.approve") && (
               <Button variant="secondary" onClick={() => downloadBankFile(r.periodStart)} loading={busy === "bank"}>

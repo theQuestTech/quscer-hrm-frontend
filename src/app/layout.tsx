@@ -4,6 +4,7 @@ import "@fontsource-variable/inter";
 import "@fontsource-variable/plus-jakarta-sans";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
+import { CodePrompt } from "@/components/two-step";
 
 export const metadata: Metadata = {
   title: "Quscer HRM",
@@ -14,7 +15,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          <CodePrompt />
+        </AuthProvider>
       </body>
     </html>
   );

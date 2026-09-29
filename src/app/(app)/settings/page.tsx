@@ -14,9 +14,10 @@ import { Alert, Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Sp
 import { RequirePermission } from "@/components/app-shell";
 import { CrudList } from "./crud-list";
 import { AttendanceSettings } from "./attendance-settings";
+import { SecuritySettings } from "./security";
 import { ActivityHistory } from "./activity-history";
 
-type Tab = "company" | "branches" | "departments" | "cost-centres" | "shifts" | "holidays" | "leave-types" | "deductions" | "attendance" | "users" | "activity";
+type Tab = "company" | "branches" | "departments" | "cost-centres" | "shifts" | "holidays" | "leave-types" | "deductions" | "attendance" | "users" | "security" | "activity";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "company", label: "Company" },
@@ -29,6 +30,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "deductions", label: "Payroll deductions" },
   { id: "attendance", label: "Attendance & machines" },
   { id: "users", label: "Users & roles" },
+  { id: "security", label: "Security" },
   { id: "activity", label: "Activity history" },
 ];
 
@@ -74,6 +76,7 @@ function Settings() {
       {tab === "deductions" && <PayrollDeductions />}
       {tab === "attendance" && <AttendanceSettings />}
       {tab === "users" && <Users />}
+      {tab === "security" && <SecuritySettings />}
       {tab === "activity" && <ActivityHistory />}
     </>
   );

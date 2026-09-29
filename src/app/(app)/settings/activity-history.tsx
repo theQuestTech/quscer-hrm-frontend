@@ -5,6 +5,7 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import { CalendarDays, Clock, Download, Headset, KeyRound, Landmark, Users as UsersIcon, Activity } from "lucide-react";
 import { api, downloadFile } from "@/lib/api";
 import { useApi } from "@/lib/use-api";
+import { ActivityCheck } from "./security";
 import { Alert, Button, Card, EmptyState, Field, Input, Select, Spinner, cx } from "@/components/ui";
 
 // Settings → Activity history: everything done in the company, newest first,
@@ -109,6 +110,9 @@ export function ActivityHistory() {
           <p className="mt-1 max-w-xl text-sm text-slate-500">
             Everything done in this company, newest first — by your team and by Quscer support. It can&apos;t be edited or deleted.
           </p>
+          <div className="mt-2">
+            <ActivityCheck />
+          </div>
         </div>
         <Button variant="secondary" size="sm" onClick={download} loading={downloading}>
           <Download className="size-4" /> Download CSV

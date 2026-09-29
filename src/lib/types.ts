@@ -296,6 +296,8 @@ export interface PayrollRunDetail {
   status: PayrollStatus;
   submittedAt: string | null;
   approvedAt: string | null;
+  // Who prepared it — a different person approves (maker-checker).
+  runByUserId?: string | null;
   lineItems: PayrollLineItem[];
 }
 

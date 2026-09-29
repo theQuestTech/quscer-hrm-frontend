@@ -3,11 +3,19 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { ApiError, api, getToken, setToken, setUnauthorizedHandler } from "./api";
 import type { Me } from "./types";
+import { saveTrustedToken, tokenNeedsSetup, trustedToken } from "./two-step";
 
 interface AuthState {
   me: Me | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  // Password step. Returns a challenge when the 6-digit code is needed next.
+  login: (email: string, password: string) => Promise<{ challengeToken: string } | void>;
+  // Code step: the 6-digit code or a backup code.
+  loginWithCode: (email: string, challengeToken: string, input: { code?: string; backupCode?: string; trustDevice?: boolean }) => Promise<void>;
+  // Two-step sign-in is required for this person and not set up yet.
+  setupRequired: boolean;
+  // A new sign-in from the server (e.g. after turning two-step on).
+  applyToken: (accessToken: string) => Promise<void>;
   signup: (input: {
     organizationName: string;
     email: string;
@@ -55,13 +63,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => setUnauthorizedHandler(null);
   }, [refresh, logout]);
 
-  const login = useCallback(
-    async (email: string, password: string) => {
-      const { accessToken } = await api<{ accessToken: string }>("POST", "/auth/login", { email, password });
+  // Read from the sign-in itself, so pages know before they load anything.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setupRequired = useMemo(() => tokenNeedsSetup(getToken()), [me]);
+
+  const applyToken = useCallback(
+    async (accessToken: string) => {
       setToken(accessToken);
       await refresh();
     },
     [refresh],
+  );
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const res = await api<{ accessToken?: string; twoStepRequired?: boolean; challengeToken?: string }>("POST", "/auth/login", {
+        email,
+        password,
+        trustedDeviceToken: trustedToken(email),
+      });
+      if (res.twoStepRequired && res.challengeToken) return { challengeToken: res.challengeToken };
+      await applyToken(res.accessToken!);
+    },
+    [applyToken],
+  );
+
+  const loginWithCode = useCallback<AuthState["loginWithCode"]>(
+    async (email, challengeToken, input) => {
+      const res = await api<{ accessToken: string; trustedDeviceToken?: string }>("POST", "/auth/login/two-step", { challengeToken, ...input });
+      if (res.trustedDeviceToken) saveTrustedToken(email, res.trustedDeviceToken);
+      await applyToken(res.accessToken);
+    },
+    [applyToken],
   );
 
   const signup = useCallback<AuthState["signup"]>(
@@ -96,6 +129,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       me,
       loading,
       login,
+      loginWithCode,
+      setupRequired,
+      applyToken,
       signup,
       logout,
       refresh,
@@ -103,7 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       addCompany,
       can: (permission) => !!me?.permissions.includes(permission),
     }),
-    [me, loading, login, signup, logout, refresh, switchCompany, addCompany],
+    [me, loading, login, loginWithCode, setupRequired, applyToken, signup, logout, refresh, switchCompany, addCompany],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

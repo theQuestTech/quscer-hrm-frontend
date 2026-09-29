@@ -2,6 +2,8 @@
 // localStorage — this app is standalone until it's connected to Quscer OS
 // (WBS 6.1), at which point sign-in moves to the shared Quscer session.
 
+import { CODE_REQUIRED, CODE_WRONG, SETUP_REQUIRED, askCode } from "./two-step";
+
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4100").replace(/\/$/, "");
 const TOKEN_KEY = "quscer-hrm-token";
 
@@ -92,8 +94,9 @@ export function errorMessage(body: unknown, fallback: string): string {
   return fallback;
 }
 
-async function request(method: string, path: string, body?: unknown): Promise<Response> {
+async function request(method: string, path: string, body?: unknown, code?: string, tries = 0): Promise<Response> {
   const headers: Record<string, string> = {};
+  if (code) headers["X-Two-Step-Code"] = code;
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
   // FormData (file uploads) sets its own multipart Content-Type.
@@ -113,6 +116,18 @@ async function request(method: string, path: string, body?: unknown): Promise<Re
 
   if (!res.ok) {
     const data = await res.json().catch(() => null);
+    const reason = res.status === 403 && data && typeof data === "object" ? (data as { code?: string }).code : undefined;
+    // A sensitive action wants the code from the authenticator app: ask, then
+    // send the same request again with it (a wrong code asks again, 3 times).
+    if ((reason === CODE_REQUIRED || reason === CODE_WRONG) && tries < 3) {
+      const typed = await askCode("Type the 6-digit code from your authenticator app to confirm.", reason === CODE_WRONG ? errorMessage(data, "That code isn't right") : null);
+      if (!typed) throw new ApiError(403, "Cancelled — nothing was changed");
+      return request(method, path, body, typed, tries + 1);
+    }
+    // Two-step sign-in is required but not set up: only the setup page opens.
+    if (reason === SETUP_REQUIRED && typeof window !== "undefined" && !window.location.pathname.startsWith("/two-step-setup")) {
+      window.location.assign(`/two-step-setup?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+    }
     if (res.status === 401 && token) onUnauthorized?.();
     throw new ApiError(res.status, errorMessage(data, `Request failed (${res.status})`));
   }
