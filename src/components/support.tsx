@@ -25,6 +25,7 @@ const EMAIL: Record<EmailStatus, [BadgeTone, string]> = {
   FAILED: ["red", "Failed"],
   BOUNCED: ["red", "Bounced"],
   COMPLAINED: ["red", "Marked as spam"],
+  HELD: ["yellow", "Held (staging)"],
 };
 
 export function EmailBadge({ status }: { status: EmailStatus }) {
