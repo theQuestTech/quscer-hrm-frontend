@@ -5,6 +5,7 @@ import "@fontsource-variable/plus-jakarta-sans";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { CodePrompt } from "@/components/two-step";
+import { StagingBadge } from "@/components/staging-badge";
 
 export const metadata: Metadata = {
   title: "Quscer HRM",
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <AuthProvider>
           {children}
           <CodePrompt />
+          <StagingBadge />
         </AuthProvider>
       </body>
     </html>

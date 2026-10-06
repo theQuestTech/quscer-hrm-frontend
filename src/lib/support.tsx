@@ -172,7 +172,7 @@ export function useSupport() {
 // --- Shapes from the server ---------------------------------------------------------------
 
 export type TicketStatus = "OPEN" | "ANSWERED" | "CLOSED";
-export type EmailStatus = "SENT" | "FAILED" | "DELIVERED" | "BOUNCED" | "COMPLAINED";
+export type EmailStatus = "SENT" | "FAILED" | "DELIVERED" | "BOUNCED" | "COMPLAINED" | "HELD";
 
 export interface Overview {
   companies: number;

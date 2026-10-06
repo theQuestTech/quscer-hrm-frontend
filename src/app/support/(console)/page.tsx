@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { type CompanyRow, useSupportApi } from "@/lib/support";
 import { formatDate, formatRelative } from "@/lib/format";
 import { useOverview } from "@/components/support";
+import { SupportDemo } from "@/components/support-demo";
 import { Alert, Badge, Card, EmptyState, Input, PageHeader, Spinner, Stat, Table, Td, Th, cx } from "@/components/ui";
 
 export default function CompaniesPage() {
@@ -48,6 +49,9 @@ export default function CompaniesPage() {
           value={<span className={cx(!!o?.emailProblems && "text-red-600")}>{o?.emailProblems ?? "—"}</span>}
           hint="Failed, bounced or marked as spam"
         />
+      </div>
+      <div className="mb-6">
+        <SupportDemo />
       </div>
       {list.error && <Alert>{list.error}</Alert>}
       <Card padded={false}>
