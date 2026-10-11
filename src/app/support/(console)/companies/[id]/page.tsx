@@ -25,11 +25,11 @@ export default function CompanyPage() {
   if (!c) return null;
   const people = c.logins.filter((l) => l.canLogIn);
 
-  async function act(key: string, path: string, done: string) {
+  async function act(key: string, path: string, done: string, body?: object) {
     setBusy(key);
     setNotice(null);
     try {
-      await supportApi("POST", path);
+      await supportApi("POST", path, body);
       setNotice({ tone: "success", text: done });
     } catch (e) {
       setNotice({ tone: "error", text: e instanceof Error ? e.message : "Something went wrong" });
@@ -214,6 +214,28 @@ export default function CompanyPage() {
               <Item label="Payroll runs" value={String(c.payrollRuns)} />
               <Item label="Modules" value={c.setup.modules.join(", ") || "Core only"} />
             </dl>
+          </Card>
+
+          <Card title="Field tracking add-on">
+            <p className="text-sm text-slate-600">
+              {c.fieldTrackingSince
+                ? `On since ${formatDate(c.fieldTrackingSince)}. Field staff are tracked while checked in; managers see the Field team page.`
+                : "Off. Switch on when the company has bought it — then HR marks their field staff."}
+            </p>
+            <div className="mt-3">
+              <Button
+                size="sm"
+                variant={c.fieldTrackingSince ? "secondary" : "primary"}
+                loading={busy === "tracking"}
+                onClick={() => {
+                  const on = !c.fieldTrackingSince;
+                  if (!on && !window.confirm("Switch field tracking off? Phones stop sending positions and the pages are hidden. What was recorded is kept.")) return;
+                  act("tracking", `/support/companies/${id}/field-tracking`, on ? "Field tracking is on for this company." : "Field tracking is off.", { on });
+                }}
+              >
+                {c.fieldTrackingSince ? "Switch off" : "Switch on"}
+              </Button>
+            </div>
           </Card>
 
           <Card title="Help requests" padded={false}>

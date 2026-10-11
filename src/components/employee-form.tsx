@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useApi } from "@/lib/use-api";
+import { useAuth } from "@/lib/auth";
 import { humanize, todayInput, toDateInput } from "@/lib/format";
 import { countryLabel, regionName, regionsOf } from "@/lib/geo";
 import { CountryPicker, RegionSelect } from "@/components/geo-pickers";
@@ -44,6 +45,7 @@ function initialValues(e?: Employee): EmployeeFormValues {
     checkInMethod: e?.checkInMethod ?? "",
     requireOfficeNetwork: e?.requireOfficeNetwork == null ? "" : e.requireOfficeNetwork ? "yes" : "no",
     requireOfficeLocation: e?.requireOfficeLocation == null ? "" : e.requireOfficeLocation ? "yes" : "no",
+    fieldStaff: e?.fieldStaff ? "yes" : "no",
   };
 }
 
@@ -72,6 +74,7 @@ export function EmployeeForm({
   onSubmit: (values: Record<string, unknown>) => Promise<void>;
   onCancel?: () => void;
 }) {
+  const fieldTracking = !!useAuth().me?.organization.fieldTracking;
   const [values, setValues] = useState(() => initialValues(employee));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -102,6 +105,10 @@ export function EmployeeForm({
     const payload: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(values)) {
       if (key === "status" && !employee) continue; // new employees start ACTIVE
+      if (key === "fieldStaff") {
+        if (fieldTracking) payload.fieldStaff = value === "yes"; // only with the add-on
+        continue;
+      }
       if (value === "") {
         // On edit, clearing an optional date or the shift removes it; other blanks are left alone.
         if (employee && CLEARABLE.includes(key)) payload[key] = null;
@@ -311,6 +318,14 @@ export function EmployeeForm({
             <option value="no">No</option>
           </Select>
         </Field>
+        {fieldTracking && (
+          <Field label="Field staff" hint="Their phone shares its position while they're checked in">
+            <Select value={values.fieldStaff} onChange={set("fieldStaff")}>
+              <option value="no">No — not tracked</option>
+              <option value="yes">Yes — track while checked in</option>
+            </Select>
+          </Field>
+        )}
       </fieldset>
 
       <div className="flex justify-end gap-2">

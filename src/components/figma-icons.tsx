@@ -1,11 +1,11 @@
 // Icons exactly as drawn in the Figma Make design (same paths, 1.8 stroke).
-// Only "users", "feed", "log-in", "log-out", "arrow-right" and "help" are added,
+// Only "users", "feed", "log-in", "log-out", "arrow-right", "help" and "map-pin" are added,
 // drawn in the same style, for pages the design doesn't show.
 
 type IconName =
   | "home" | "user" | "users" | "clock" | "calendar" | "pay" | "doc" | "chart" | "book" | "briefcase"
   | "settings" | "bell" | "search" | "chevron-right" | "chevron-left" | "chevron-down" | "check-circle"
-  | "arrow-up" | "star" | "feed" | "log-in" | "log-out" | "arrow-right" | "x-circle" | "menu" | "help";
+  | "arrow-up" | "star" | "feed" | "log-in" | "log-out" | "arrow-right" | "x-circle" | "menu" | "help" | "map-pin";
 
 export function Icon({
   name,
@@ -29,6 +29,8 @@ export function Icon({
     className,
   };
   switch (name) {
+    case "map-pin":
+      return <svg style={s} viewBox="0 0 24 24" {...p}><path d="M12 21s-7-6.2-7-11.5a7 7 0 0114 0C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></svg>;
     case "home":
       return <svg style={s} viewBox="0 0 24 24" {...p}><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" /><polyline points="9,21 9,12 15,12 15,21" /></svg>;
     case "user":
