@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Upload } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useApi } from "@/lib/use-api";
 import { formatDate, humanize } from "@/lib/format";
@@ -54,11 +54,18 @@ function EmployeeDirectory() {
         description={data ? `${data.total} ${data.total === 1 ? "person" : "people"}` : undefined}
         actions={
           can("hrm.employee.write") && (
-            <Link href="/employees/new">
-              <Button>
-                <Plus className="size-4" /> Add employee
-              </Button>
-            </Link>
+            <>
+              <Link href="/employees/import">
+                <Button variant="secondary">
+                  <Upload className="size-4" /> Import from Excel
+                </Button>
+              </Link>
+              <Link href="/employees/new">
+                <Button>
+                  <Plus className="size-4" /> Add employee
+                </Button>
+              </Link>
+            </>
           )
         }
       />
