@@ -236,6 +236,7 @@ export interface CompanyDetail {
   createdAt: string;
   suspendedAt: string | null;
   suspendedReason: string | null;
+  fieldTrackingSince: string | null;
   timezone: string;
   employees: number;
   branches: number;

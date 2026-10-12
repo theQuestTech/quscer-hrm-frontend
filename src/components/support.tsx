@@ -56,6 +56,10 @@ export function activityText(a: SupportActivity): string {
       return `switched the company off — “${d.reason}”`;
     case "company.resumed":
       return "switched the company back on";
+    case "company.field_tracking_on":
+      return "switched the field tracking add-on on";
+    case "company.field_tracking_off":
+      return "switched the field tracking add-on off";
     case "user.reset_link_sent":
       return `sent a password reset link to ${d.email}`;
     case "user.welcome_resent":

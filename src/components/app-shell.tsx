@@ -28,6 +28,7 @@ interface NavItem {
     modules: string[];
     isHr: boolean;
     involvement: { recruiting: boolean; onboarding: boolean };
+    fieldTracking: boolean;
   }) => boolean;
 }
 
@@ -39,6 +40,8 @@ const NAV: NavItem[] = [
   // HR, plus new joiners and their managers while they have joining tasks.
   { href: "/onboarding", label: "Onboarding", icon: "check-circle", visible: ({ isHr, involvement }) => isHr || involvement.onboarding },
   { href: "/attendance", label: "Attendance", icon: "clock", visible: ({ can }) => can("hrm.attendance.read") },
+  // Field tracking add-on: managers see their team, HR everyone.
+  { href: "/tracking", label: "Field team", icon: "map-pin", visible: ({ can, fieldTracking }) => fieldTracking && can("hrm.attendance.approve") },
   { href: "/leave", label: "Leave", icon: "calendar", visible: ({ can }) => can("hrm.leave.read") },
   { href: "/payroll", label: "Payroll", icon: "pay", visible: ({ can }) => can("hrm.payroll.read") },
   {
@@ -127,6 +130,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       modules: me.organization.modules ?? [],
       isHr: can("hrm.employee.write") || can("hrm.settings.write"),
       involvement: me.involvement ?? { recruiting: false, onboarding: false },
+      fieldTracking: !!me.organization.fieldTracking,
     }),
   );
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));

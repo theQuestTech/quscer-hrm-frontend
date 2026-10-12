@@ -13,6 +13,8 @@ export interface Me {
     // Optional modules this company uses ("performance", "training", "recruitment").
     modules: string[];
     kpiScoring: KpiScoring;
+    // Field tracking add-on, switched on by Quscer support.
+    fieldTracking?: boolean;
   };
   // Not HR, but interviewing / hiring for a job, or with joining tasks.
   involvement: { recruiting: boolean; onboarding: boolean };
@@ -113,6 +115,8 @@ export interface Employee {
   checkInMethod: "APP" | "MACHINE" | "BOTH" | null;
   requireOfficeNetwork: boolean | null;
   requireOfficeLocation: boolean | null;
+  // Field tracking: shares position while checked in.
+  fieldStaff?: boolean;
   branch?: Branch | null;
   department?: Department | null;
   shift?: Shift | null;
@@ -922,4 +926,46 @@ export interface PunchResult {
   matched: number;
   skipped: number;
   unknownIds: string[];
+}
+
+// --- Field tracking (add-on) ---
+
+export type LiveStatus = "LIVE" | "WAITING" | "NO_SIGNAL" | "LOCATION_OFF" | "NOT_CHECKED_IN";
+
+export interface LivePerson {
+  employee: { id: string; firstName: string; lastName: string; designation: string; employeeNumber: string };
+  status: LiveStatus;
+  since: string | null;
+  checkedInAt: string | null;
+  last: { at: string; latitude: number; longitude: number; accuracy: number | null; battery: number | null } | null;
+  visit: { id: string; place: string; arrivedAt: string } | null;
+}
+
+export interface FieldVisit {
+  id: string;
+  arrivedAt: string;
+  leftAt: string | null;
+  latitude: number;
+  longitude: number;
+  place: string;
+  notes: string | null;
+}
+
+export interface DayRoute {
+  employee: { id: string; firstName: string; lastName: string; fieldStaff: boolean };
+  date: string;
+  checkIn: string | null;
+  checkOut: string | null;
+  points: { at: string; latitude: number; longitude: number; accuracy: number | null; battery: number | null }[];
+  visits: FieldVisit[];
+  events: { at: string; kind: "LOCATION_OFF" | "LOCATION_ON" | "PERMISSION_DENIED" }[];
+  distanceKm: number;
+  stops: { arrivedAt: string; leftAt: string; minutes: number; latitude: number; longitude: number }[];
+}
+
+export interface TrackingSettings {
+  enabled: boolean;
+  intervalMinutes: number;
+  keepDays: number;
+  fieldStaff: number;
 }

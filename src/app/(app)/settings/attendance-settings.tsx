@@ -8,17 +8,20 @@ import { formatRelative, fullName } from "@/lib/format";
 import { currentLocation } from "@/lib/check-in";
 import { type DateOrder, detectDelimiter, guessOrder, parseRows, readDateTime } from "@/lib/punch-file";
 import type {
-  AttendanceDevice, Branch, DeviceKind, Employee, OfficeLocation, OfficeNetwork, OrgSettings, Paginated, PunchResult, UnmatchedId,
+  AttendanceDevice, Branch, DeviceKind, Employee, OfficeLocation, OfficeNetwork, OrgSettings, Paginated, PunchResult, TrackingSettings, UnmatchedId,
 } from "@/lib/types";
 import { Alert, Badge, Button, Card, EmptyState, Field, Input, Modal, Select, Spinner, Table, Td, Th } from "@/components/ui";
+import { useFieldTracking } from "@/components/tracking";
 
 // Settings → Attendance: how people record time, where the app button works,
 // attendance machines, IDs the machines sent that nobody has yet, and
 // importing a file from a machine.
 export function AttendanceSettings() {
+  const fieldTracking = useFieldTracking();
   return (
     <div className="space-y-6">
       <DefaultRules />
+      {fieldTracking && <FieldTracking />}
       <div className="grid gap-6 xl:grid-cols-2">
         <Networks />
         <Locations />
@@ -913,6 +916,64 @@ function ImportFile() {
           </>
         )}
       </div>
+    </Card>
+  );
+}
+
+// --- Field tracking (add-on) ----------------------------------------------------
+
+function FieldTracking() {
+  const settings = useApi<TrackingSettings>("/tracking/settings");
+  const [form, setForm] = useState<{ intervalMinutes: string; keepDays: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const s = settings.data;
+  const f = form ?? (s ? { intervalMinutes: String(s.intervalMinutes), keepDays: String(s.keepDays) } : null);
+
+  return (
+    <Card title="Field tracking">
+      {settings.loading && !s ? (
+        <Spinner />
+      ) : !s || !f ? (
+        <Alert>{settings.error ?? "Could not load"}</Alert>
+      ) : (
+        <form
+          className="max-w-2xl space-y-4"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setSaving(true);
+            setMsg(null);
+            try {
+              await api("PATCH", "/tracking/settings", { intervalMinutes: Number(f.intervalMinutes), keepDays: Number(f.keepDays) });
+              setMsg({ tone: "success", text: "Saved" });
+              setForm(null);
+              settings.reload();
+            } catch (err) {
+              setMsg({ tone: "error", text: err instanceof Error ? err.message : "Could not save" });
+            } finally {
+              setSaving(false);
+            }
+          }}
+        >
+          {msg && <Alert tone={msg.tone}>{msg.text}</Alert>}
+          <p className="text-sm text-slate-600">
+            Field staff&apos;s phones share their position while they&apos;re checked in — never before check-in or after check-out.{" "}
+            <strong>{s.fieldStaff}</strong> {s.fieldStaff === 1 ? "person is" : "people are"} marked as field staff (on their profile: Edit → Attendance).
+            Tell them, and get their agreement in writing, before you start.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Send position every (minutes)" hint="5 is a good balance with battery">
+              <Input type="number" min={1} max={60} required value={f.intervalMinutes} onChange={(e) => setForm({ ...f, intervalMinutes: e.target.value })} />
+            </Field>
+            <Field label="Keep positions for (days)" hint="Older positions are deleted automatically. Client visits are kept.">
+              <Input type="number" min={7} max={365} required value={f.keepDays} onChange={(e) => setForm({ ...f, keepDays: e.target.value })} />
+            </Field>
+          </div>
+          <Button type="submit" loading={saving}>
+            Save
+          </Button>
+        </form>
+      )}
     </Card>
   );
 }
